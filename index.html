@@ -125,13 +125,13 @@
       <input type="password" id="adminPassword" placeholder="Contraseña" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
       <div class="flex gap-2">
         <button onclick="loginAdmin()" class="flex-1 bg-yellow-500 text-black font-bold py-2 rounded">Ingresar</button>
-        <button onclick="toggleAdminModal()" class="flex-1 bg-gray-600 text-white py-2 rounded">Cerrar</button>
+        <button onclick="closeLoginModal()" class="flex-1 bg-gray-600 text-white py-2 rounded">Cerrar</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Configuración de Firebase enviada por Yilmar
+    // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAD6WqrWjEsM8vcMj7s6H39lXv-YNY228Q",
       authDomain: "choquibzea-d026e.firebaseapp.com",
@@ -150,7 +150,7 @@
     let bookedAppointments = [];
     let calendarPicker = null;
 
-    // Inicializar Calendario Flapickr Visual
+    // Inicializar Calendario Visual
     document.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('bookingDate').value = today;
@@ -175,6 +175,7 @@
         document.getElementById('adminDashboard').classList.remove('hidden');
         document.getElementById('clientView').classList.add('hidden');
         document.getElementById('adminAuthBtn').innerText = 'Vista Cliente';
+        closeLoginModal();
         loadAdminAppointments();
       } else {
         document.getElementById('adminDashboard').classList.add('hidden');
@@ -281,22 +282,34 @@
       }
     }
 
-    // Funciones del Admin
+    // Funciones del Admin y Modales
     function toggleAdminModal() {
       if(auth.currentUser) {
         document.getElementById('adminDashboard').classList.toggle('hidden');
         document.getElementById('clientView').classList.toggle('hidden');
       } else {
-        document.getElementById('loginModal').classList.toggle('hidden');
+        document.getElementById('loginModal').classList.remove('hidden');
       }
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.add('hidden');
     }
 
     async function loginAdmin() {
       const email = document.getElementById('adminEmail').value;
       const pass = document.getElementById('adminPassword').value;
+      
+      if(!email || !pass) {
+        alert("Por favor ingresa correo y contraseña.");
+        return;
+      }
+
       try {
         await auth.signInWithEmailAndPassword(email, pass);
-        toggleAdminModal();
+        document.getElementById('adminEmail').value = '';
+        document.getElementById('adminPassword').value = '';
+        closeLoginModal();
       } catch (err) {
         alert("Error de inicio de sesión: " + err.message);
       }
