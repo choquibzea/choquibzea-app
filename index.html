@@ -152,14 +152,30 @@
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-white shadow transition">Cerrar Sesión</button>
       </div>
 
-      <!-- 1. Citas Agendadas -->
-      <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl">
-        <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
-          <!-- SVG Clipboard -->
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          Citas Agendadas
-        </h3>
-        <div id="appointmentsList" class="space-y-3">
+      <!-- 1. Citas Agendadas con Filtro por Fecha y Botón de Recarga -->
+      <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <!-- SVG Clipboard -->
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <h3 class="font-bold text-lg text-amber-400">Citas Agendadas</h3>
+            <!-- Botón de Carga al lado del título -->
+            <button onclick="loadAdminAppointments()" class="text-xs bg-gray-900 hover:bg-gray-800 text-amber-400 border border-amber-500/40 p-1.5 rounded-lg transition active:scale-95 flex items-center justify-center" title="Recargar Citas">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+
+          <!-- Filtro por Días (Por defecto Hoy) -->
+          <div class="flex items-center gap-1.5 bg-gray-900 p-1 rounded-xl border border-gray-800 text-xs">
+            <span class="text-gray-400 pl-1.5 font-medium">Filtrar:</span>
+            <input type="date" id="adminFilterDate" onchange="loadAdminAppointments()" class="bg-gray-800 text-amber-400 font-mono font-bold p-1 rounded-lg border border-amber-500/30 focus:outline-none">
+            <button onclick="resetAdminFilterDate()" class="text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 px-2 py-1 rounded-lg font-bold border border-amber-500/30">
+              Hoy
+            </button>
+          </div>
+        </div>
+
+        <div id="appointmentsList" class="space-y-3 pt-1">
           <p class="text-gray-400 text-sm">Cargando citas...</p>
         </div>
       </div>
@@ -423,6 +439,10 @@
     document.addEventListener("DOMContentLoaded", () => {
       fetchAdminWhatsapp();
 
+      // Inicializar el filtro de la fecha actual en Admin
+      const todayYMD = new Date().toISOString().split('T')[0];
+      document.getElementById('adminFilterDate').value = todayYMD;
+
       flatpickr("#inlineCalendar", {
         inline: true,
         defaultDate: "today",
@@ -477,6 +497,7 @@
       document.getElementById('adminCustomBlockGUI').classList.add('hidden');
       document.getElementById('clientView').classList.add('hidden');
       document.getElementById('adminAuthBtn').innerText = 'Ver Como Cliente';
+      loadAdminAppointments();
     }
 
     function showClientView() {
@@ -843,40 +864,96 @@
       auth.signOut();
     }
 
+    function resetAdminFilterDate() {
+      const todayYMD = new Date().toISOString().split('T')[0];
+      document.getElementById('adminFilterDate').value = todayYMD;
+      loadAdminAppointments();
+    }
+
     function loadAdminAppointments() {
-      db.collection('citas').orderBy('date', 'desc').onSnapshot(snapshot => {
-        const list = document.getElementById('appointmentsList');
-        list.innerHTML = '';
+      const filterDateInput = document.getElementById('adminFilterDate');
+      const filterDate = filterDateInput ? filterDateInput.value : new Date().toISOString().split('T')[0];
 
-        if(snapshot.empty) {
-          list.innerHTML = '<p class="text-gray-400 text-sm">No hay citas registradas.</p>';
-          return;
-        }
+      db.collection('citas')
+        .where('date', '==', filterDate)
+        .orderBy('time', 'asc')
+        .onSnapshot(snapshot => {
+          const list = document.getElementById('appointmentsList');
+          list.innerHTML = '';
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const item = document.createElement('div');
-          item.className = "bg-gray-900 p-3.5 rounded-xl flex flex-col gap-2 border-l-4 shadow-md " + 
-            (data.status === 'Confirmada' ? 'border-emerald-500' : data.status === 'Cancelada' ? 'border-red-500' : 'border-amber-500');
-          
-          item.innerHTML = `
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="font-bold text-white text-base">${data.clientName} <span class="text-xs text-gray-400 font-mono">(${data.clientPhone})</span></p>
-                <p class="text-xs text-amber-400 font-semibold mt-0.5">${data.service}</p>
-                <p class="text-xs text-gray-400 font-mono mt-1">📅 ${data.date} - ⏰ ${data.time}</p>
+          if(snapshot.empty) {
+            list.innerHTML = `<p class="text-gray-400 text-sm py-4 text-center">No hay citas registradas para el día <span class="font-mono text-amber-400 font-bold">${filterDate}</span>.</p>`;
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const item = document.createElement('div');
+            
+            // Colores de borde y estilos según estado:
+            let borderClass = 'border-amber-500';
+            let badgeClass = 'text-amber-400 border-amber-500/30';
+            let textColor = 'text-amber-400';
+
+            if (data.status === 'Confirmada') {
+              borderClass = 'border-emerald-500';
+              badgeClass = 'text-emerald-400 border-emerald-500/30';
+              textColor = 'text-emerald-400';
+            } else if (data.status === 'Pagado') {
+              borderClass = 'border-blue-500 bg-blue-950/20'; // Cita azul al estar Pagado
+              badgeClass = 'text-blue-400 border-blue-500/30 bg-blue-950/60';
+              textColor = 'text-blue-400';
+            } else if (data.status === 'Cancelada') {
+              borderClass = 'border-red-500';
+              badgeClass = 'text-red-400 border-red-500/30';
+              textColor = 'text-red-400';
+            }
+
+            item.className = `bg-gray-900 p-3.5 rounded-xl flex flex-col gap-2 border-l-4 shadow-md ${borderClass}`;
+            
+            // Construir botones según el estado
+            let buttonsHtml = '';
+            
+            if (data.status === 'Pendiente') {
+              buttonsHtml = `
+                <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Confirmar</button>
+                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
+              `;
+            } else if (data.status === 'Confirmada') {
+              buttonsHtml = `
+                <button onclick="updateStatus('${doc.id}', 'Pagado')" class="bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded-lg font-bold text-white transition shadow-md flex items-center gap-1">
+                  💳 Marcar Pagado
+                </button>
+                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
+              `;
+            } else if (data.status === 'Pagado') {
+              buttonsHtml = `
+                <span class="text-xs text-blue-400 font-bold flex items-center gap-1">✓ Pago Completado</span>
+                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition ml-2">Cancelar</button>
+              `;
+            } else if (data.status === 'Cancelada') {
+              buttonsHtml = `
+                <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Reactivar</button>
+              `;
+            }
+
+            item.innerHTML = `
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="font-bold text-white text-base">${data.clientName} <span class="text-xs text-gray-400 font-mono">(${data.clientPhone})</span></p>
+                  <p class="text-xs ${textColor} font-semibold mt-0.5">${data.service}</p>
+                  <p class="text-xs text-gray-400 font-mono mt-1">📅 ${data.date} - ⏰ ${data.time}</p>
+                </div>
+                <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-black border ${badgeClass}">${data.status}</span>
               </div>
-              <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-black text-amber-400 border border-amber-500/30">${data.status}</span>
-            </div>
-            <div class="flex gap-2 text-xs pt-2 border-t border-gray-800">
-              <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Confirmar</button>
-              <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
-              <button onclick="deleteAppointment('${doc.id}')" class="bg-red-600 hover:bg-red-500 px-2.5 py-1 rounded-lg font-bold text-white ml-auto transition">Eliminar</button>
-            </div>
-          `;
-          list.appendChild(item);
+              <div class="flex gap-2 text-xs pt-2 border-t border-gray-800 items-center">
+                ${buttonsHtml}
+                <button onclick="deleteAppointment('${doc.id}')" class="bg-red-600 hover:bg-red-500 px-2.5 py-1 rounded-lg font-bold text-white ml-auto transition">Eliminar</button>
+              </div>
+            `;
+            list.appendChild(item);
+          });
         });
-      });
     }
 
     async function updateStatus(id, newStatus) {
