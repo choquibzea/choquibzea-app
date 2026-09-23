@@ -53,7 +53,6 @@
           <span>2.</span> Selecciona el Día en el Calendario
         </h2>
         <div id="inlineCalendar" class="flex justify-center bg-gray-900 p-2 rounded-lg border border-gray-700"></div>
-        <input type="hidden" id="bookingDate">
       </div>
 
       <!-- Paso 3: Horarios Disponibles -->
@@ -88,7 +87,7 @@
     </section>
   </main>
 
-  <!-- MODAL DE CONFIRMACIÓN -->
+  <!-- MODAL DE CONFIRMACIÓN DE RESERVA -->
   <div id="bookingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-sm w-full space-y-4 shadow-2xl">
       <h3 class="text-lg font-bold text-yellow-400">Confirmar Reserva</h3>
@@ -101,12 +100,12 @@
 
       <form id="clientDetailsForm" onsubmit="confirmBooking(event)" class="space-y-3">
         <div>
-          <label class="block text-xs text-gray-300 mb-1">Nombre Completo</label>
+          <label class="block text-xs text-gray-300 mb-1">Nombre Completo *</label>
           <input type="text" id="clientName" required placeholder="Ej: Carlos Pérez" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
         </div>
         <div>
-          <label class="block text-xs text-gray-300 mb-1">Teléfono (WhatsApp)</label>
-          <input type="tel" id="clientPhone" required placeholder="Ej: 3001234567" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
+          <label class="block text-xs text-gray-300 mb-1">Teléfono WhatsApp (10 dígitos) *</label>
+          <input type="tel" id="clientPhone" required pattern="[0-9]{10}" maxlength="10" placeholder="Ej: 3001234567" title="Ingresa un número celular válido de 10 dígitos" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
         </div>
 
         <div class="flex gap-2 pt-2">
@@ -147,21 +146,35 @@
     const auth = firebase.auth();
 
     let selectedSlot = null;
+    let selectedDateValue = new Date().toISOString().split('T')[0];
     let bookedAppointments = [];
     let calendarPicker = null;
+    let inactivityTimer = null;
+
+    // Cierre automático de sesión tras 15 minutos sin actividad
+    function resetInactivityTimer() {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      if (auth.currentUser) {
+        inactivityTimer = setTimeout(() => {
+          alert('Tu sesión de Admin ha expirado por inactividad.');
+          logoutAdmin();
+        }, 15 * 60 * 1000); // 15 Minutos
+      }
+    }
+
+    window.onload = resetInactivityTimer;
+    document.onmousemove = resetInactivityTimer;
+    document.onkeypress = resetInactivityTimer;
 
     // Inicializar Calendario Visual
     document.addEventListener("DOMContentLoaded", () => {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('bookingDate').value = today;
-
       calendarPicker = flatpickr("#inlineCalendar", {
         inline: true,
         defaultDate: "today",
         minDate: "today",
         locale: "es",
         onChange: function(selectedDates, dateStr) {
-          document.getElementById('bookingDate').value = dateStr;
+          selectedDateValue = dateStr;
           renderSlots();
         }
       });
@@ -172,33 +185,59 @@
     // Control de Estado Auth
     auth.onAuthStateChanged(user => {
       if (user) {
-        document.getElementById('adminDashboard').classList.remove('hidden');
-        document.getElementById('clientView').classList.add('hidden');
-        document.getElementById('adminAuthBtn').innerText = 'Vista Cliente';
+        showAdminDashboard();
         closeLoginModal();
         loadAdminAppointments();
+        resetInactivityTimer();
       } else {
-        document.getElementById('adminDashboard').classList.add('hidden');
-        document.getElementById('clientView').classList.remove('hidden');
-        document.getElementById('adminAuthBtn').innerText = 'Panel Admin';
-        renderSlots();
+        showClientView();
       }
     });
 
+    function showAdminDashboard() {
+      document.getElementById('adminDashboard').classList.remove('hidden');
+      document.getElementById('clientView').classList.add('hidden');
+      document.getElementById('adminAuthBtn').innerText = 'Ver Como Cliente';
+    }
+
+    function showClientView() {
+      document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('clientView').classList.remove('hidden');
+      if (auth.currentUser) {
+        document.getElementById('adminAuthBtn').innerText = 'Ir a Panel Admin';
+      } else {
+        document.getElementById('adminAuthBtn').innerText = 'Panel Admin';
+      }
+      renderSlots();
+    }
+
+    // Toggle Botón Header
+    function toggleAdminModal() {
+      if (auth.currentUser) {
+        const isAdminVisible = !document.getElementById('adminDashboard').classList.contains('hidden');
+        if (isAdminVisible) {
+          showClientView();
+        } else {
+          showAdminDashboard();
+        }
+      } else {
+        document.getElementById('loginModal').classList.remove('hidden');
+      }
+    }
+
     // Cargar Horarios
     async function renderSlots() {
-      const selectedDate = document.getElementById('bookingDate').value;
       const grid = document.getElementById('timeSlotsGrid');
       const label = document.getElementById('selectedDateLabel');
 
-      if (!selectedDate) return;
+      if (!selectedDateValue) return;
 
-      label.innerText = selectedDate;
+      label.innerText = selectedDateValue;
       grid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-sm py-4">Buscando disponibilidad...</p>';
 
       try {
         const snapshot = await db.collection('citas')
-          .where('date', '==', selectedDate)
+          .where('date', '==', selectedDateValue)
           .get();
 
         bookedAppointments = snapshot.docs
@@ -241,9 +280,8 @@
       selectedSlot = time;
       const serviceSelect = document.getElementById('serviceType');
       const serviceText = serviceSelect.options[serviceSelect.selectedIndex].text;
-      const dateText = document.getElementById('bookingDate').value;
 
-      document.getElementById('modalSummaryDate').innerText = dateText;
+      document.getElementById('modalSummaryDate').innerText = selectedDateValue;
       document.getElementById('modalSummaryTime').innerText = time;
       document.getElementById('modalSummaryService').innerText = serviceText;
 
@@ -257,15 +295,22 @@
     // Confirmar Reserva
     async function confirmBooking(e) {
       e.preventDefault();
+      const phoneInput = document.getElementById('clientPhone').value.trim();
+
+      if (phoneInput.length !== 10 || isNaN(phoneInput)) {
+        alert('Por favor ingresa un número celular válido de 10 dígitos.');
+        return;
+      }
+
       const serviceSelect = document.getElementById('serviceType');
       const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
 
       const appointment = {
-        clientName: document.getElementById('clientName').value,
-        clientPhone: document.getElementById('clientPhone').value,
+        clientName: document.getElementById('clientName').value.trim(),
+        clientPhone: phoneInput,
         service: selectedOption.text,
         duration: parseInt(selectedOption.getAttribute('data-duration')),
-        date: document.getElementById('bookingDate').value,
+        date: selectedDateValue,
         time: selectedSlot,
         status: 'Pendiente',
         createdAt: new Date()
@@ -279,16 +324,6 @@
         renderSlots();
       } catch (err) {
         alert('Error al agendar cita: ' + err.message);
-      }
-    }
-
-    // Funciones del Admin y Modales
-    function toggleAdminModal() {
-      if(auth.currentUser) {
-        document.getElementById('adminDashboard').classList.toggle('hidden');
-        document.getElementById('clientView').classList.toggle('hidden');
-      } else {
-        document.getElementById('loginModal').classList.remove('hidden');
       }
     }
 
@@ -316,6 +351,7 @@
     }
 
     function logoutAdmin() {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
       auth.signOut();
     }
 
