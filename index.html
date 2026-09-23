@@ -36,6 +36,23 @@
     <!-- VISTA CLIENTE -->
     <section id="clientView" class="space-y-6">
       
+      <!-- Banner Pago Nequi (Al principio de todo) -->
+      <div class="bg-gradient-to-r from-purple-900/60 via-pink-900/40 to-gray-800 p-4 rounded-xl border border-pink-500/30 shadow-lg flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <!-- Logo Nequi Representativo en SVG -->
+          <div class="w-10 h-10 bg-pink-600 rounded-lg flex items-center justify-center font-black text-white text-xl shadow">
+            N
+          </div>
+          <div>
+            <p class="text-xs text-pink-300 font-bold uppercase tracking-wider">Pagos / Nequi</p>
+            <p class="text-lg font-mono font-black text-white">3122816865</p>
+          </div>
+        </div>
+        <span class="text-[10px] bg-pink-500/20 text-pink-300 border border-pink-500/40 px-2 py-1 rounded font-semibold">
+          Barbería ChoquibZea
+        </span>
+      </div>
+
       <!-- Paso 1: Servicio -->
       <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-3 shadow-lg">
         <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
@@ -81,7 +98,15 @@
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-bold text-white">Cerrar Sesión</button>
       </div>
 
-      <!-- Botón Acceso a GUI de Bloqueos Específicos -->
+      <!-- 1. Citas Agendadas (De primero) -->
+      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3 shadow-lg">
+        <h3 class="font-bold text-lg text-yellow-400">📋 Citas Agendadas</h3>
+        <div id="appointmentsList" class="space-y-3">
+          <p class="text-gray-400 text-sm">Cargando citas...</p>
+        </div>
+      </div>
+
+      <!-- 2. Botón Acceso a Bloqueo Manual de Horarios -->
       <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/40 shadow-lg flex justify-between items-center">
         <div>
           <h3 class="font-bold text-yellow-400">Bloqueo Personalizado de Horarios</h3>
@@ -92,9 +117,9 @@
         </button>
       </div>
 
-      <!-- Configuración Número WhatsApp Admin -->
+      <!-- 3. Configuración Número WhatsApp Admin -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-3 shadow-lg">
-        <h3 class="font-bold text-lg text-yellow-400">WhatsApp para Notificaciones</h3>
+        <h3 class="font-bold text-lg text-yellow-400">📱 WhatsApp para Notificaciones</h3>
         <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación:</p>
         <div class="flex gap-2">
           <input type="tel" id="adminWhatsappInput" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono text-sm focus:outline-none focus:border-yellow-500">
@@ -104,9 +129,9 @@
         </div>
       </div>
 
-      <!-- Configuración de Horario General de Trabajo -->
+      <!-- 4. Configuración de Horario General de Trabajo -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-4 shadow-lg">
-        <h3 class="font-bold text-lg text-yellow-400">Configurar Horario Laboral General</h3>
+        <h3 class="font-bold text-lg text-yellow-400">🗓️ Configurar Horario Laboral General</h3>
         <p class="text-xs text-gray-400">Selecciona el día en el calendario y define tu horario de atención y descanso:</p>
         
         <div id="adminCalendar" class="flex justify-center bg-gray-900 p-2 rounded-lg border border-gray-700"></div>
@@ -143,14 +168,6 @@
             Guardar Horario para este Día
           </button>
         </form>
-      </div>
-
-      <!-- Lista de Citas Agendadas -->
-      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
-        <h3 class="font-bold text-lg">Citas Agendadas</h3>
-        <div id="appointmentsList" class="space-y-3">
-          <p class="text-gray-400 text-sm">Cargando citas...</p>
-        </div>
       </div>
     </section>
 
@@ -400,7 +417,6 @@
       }
     }
 
-    // Navegación GUI Bloqueos Personalizados
     function openCustomBlockGUI() {
       document.getElementById('adminDashboard').classList.add('hidden');
       document.getElementById('adminCustomBlockGUI').classList.remove('hidden');
@@ -413,7 +429,6 @@
       renderSlots();
     }
 
-    // Renderizar Horarios para la GUI de Bloqueo Manual Admin
     async function renderCustomBlockSlots() {
       document.getElementById('blockSelectedDateLabel').innerText = blockSelectedDateValue;
       const grid = document.getElementById('customBlockSlotsGrid');
@@ -532,7 +547,6 @@
       }
     }
 
-    // Renderizar Citas Disponibles en la Vista Cliente con Filtro de Horas Pasadas y Bloqueos Manuales
     async function renderSlots() {
       const grid = document.getElementById('timeSlotsGrid');
       const label = document.getElementById('selectedDateLabel');
@@ -548,14 +562,12 @@
       let lEnd = "";
       let manualBlocks = [];
 
-      // Obtener fecha y hora actual en tiempo real
       const now = new Date();
       const todayYMD = now.toISOString().split('T')[0];
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
       const currentTimeStr = `${currentHour < 10 ? '0' + currentHour : currentHour}:${currentMinute < 10 ? '0' + currentMinute : currentMinute}`;
 
-      // 1. Horario General
       try {
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
@@ -569,7 +581,6 @@
         console.error("Error al obtener horario del día:", e);
       }
 
-      // 2. Bloqueos Manuales del Admin
       try {
         const blockDoc = await db.collection('bloqueos_manuales').doc(selectedDateValue).get();
         if (blockDoc.exists && blockDoc.data().slots) {
@@ -579,7 +590,6 @@
         console.error("Error al obtener bloqueos manuales:", e);
       }
 
-      // 3. Citas Reservadas
       try {
         const snapshot = await db.collection('citas')
           .where('date', '==', selectedDateValue)
@@ -607,11 +617,8 @@
           const isLunch = lStart && lEnd && (timeString >= lStart && timeString < lEnd);
           const isBooked = bookedAppointments.some(app => app.time === timeString);
           const isManuallyBlocked = manualBlocks.includes(timeString);
-          
-          // Filtro para ocultar horas pasadas en el día de HOY
           const isPastTime = (selectedDateValue === todayYMD) && (timeString <= currentTimeStr);
 
-          // MOSTRAR ÚNICAMENTE SI ESTÁ DISPONIBLE, NO ES PASADO Y NO ESTÁ BLOQUEADO
           if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime) {
             availableSlotsCount++;
             const btn = document.createElement('button');
@@ -700,7 +707,6 @@
         const cleanAdminPhone = "57" + currentAdminPhone;
         let messageText = `Hola Yilmar, acabo de agendar una cita en ChoquibZea:\n\nNombre: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nFecha: ${appointment.date}\nHora: ${appointment.time}\nServicio: ${appointment.service}`;
         
-        // Informar al mensaje si se eliminó una cita previa en la misma semana
         if (hadPreviousApp) {
           messageText += `\n\n(Nota: Se elimino automaticamente mi reserva anterior de esta misma semana.)`;
         }
