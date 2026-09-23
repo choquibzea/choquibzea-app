@@ -60,7 +60,7 @@
         <div class="flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <h2 class="text-lg font-bold text-yellow-400">3. Horarios Disponibles</h2>
-            <button onclick="renderSlots()" class="text-xs bg-gray-700 hover:bg-gray-600 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded transition active:scale-95" title="Actualizar disponiblidad">
+            <button onclick="renderSlots()" class="text-xs bg-gray-700 hover:bg-gray-600 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded transition active:scale-95" title="Actualizar disponibilidad">
               🔄 Actualizar
             </button>
           </div>
@@ -69,22 +69,33 @@
         <p class="text-xs text-gray-400">Toca un horario disponible para agendar tu cita:</p>
 
         <div id="timeSlotsGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-          <!-- Los botones disponibles se generan dinámicamente -->
+          <!-- Se generan dinámicamente -->
         </div>
       </div>
     </section>
 
-    <!-- VISTA ADMIN -->
+    <!-- VISTA ADMIN PRINCIPAL -->
     <section id="adminDashboard" class="hidden space-y-6">
       <div class="flex justify-between items-center border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-yellow-400">Panel Admin (Yilmar)</h2>
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-bold text-white">Cerrar Sesión</button>
       </div>
 
+      <!-- Botón Acceso a GUI de Bloqueos Específicos -->
+      <div class="bg-gray-800 p-4 rounded-xl border border-yellow-500/40 shadow-lg flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-yellow-400">Bloqueo Personalizado de Horarios</h3>
+          <p class="text-xs text-gray-400">Bloquea horas sueltas a tu antojo para diligencias personales.</p>
+        </div>
+        <button onclick="openCustomBlockGUI()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-3 py-2 rounded text-xs transition">
+          🚫 Bloquear Horarios
+        </button>
+      </div>
+
       <!-- Configuración Número WhatsApp Admin -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-3 shadow-lg">
         <h3 class="font-bold text-lg text-yellow-400">WhatsApp para Notificaciones</h3>
-        <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación de la cita:</p>
+        <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación:</p>
         <div class="flex gap-2">
           <input type="tel" id="adminWhatsappInput" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono text-sm focus:outline-none focus:border-yellow-500">
           <button onclick="saveAdminWhatsapp()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded text-sm transition">
@@ -93,9 +104,9 @@
         </div>
       </div>
 
-      <!-- Configuración de Horario de Trabajo -->
+      <!-- Configuración de Horario General de Trabajo -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-4 shadow-lg">
-        <h3 class="font-bold text-lg text-yellow-400">Configurar Horario Laboral y Almuerzo</h3>
+        <h3 class="font-bold text-lg text-yellow-400">Configurar Horario Laboral General</h3>
         <p class="text-xs text-gray-400">Selecciona el día en el calendario y define tu horario de atención y descanso:</p>
         
         <div id="adminCalendar" class="flex justify-center bg-gray-900 p-2 rounded-lg border border-gray-700"></div>
@@ -139,6 +150,31 @@
         <h3 class="font-bold text-lg">Citas Agendadas</h3>
         <div id="appointmentsList" class="space-y-3">
           <p class="text-gray-400 text-sm">Cargando citas...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- GUI ADMIN DEDICADA: BLOQUEO PERSONALIZADO DE HORARIOS -->
+    <section id="adminCustomBlockGUI" class="hidden space-y-6">
+      <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+        <h2 class="text-xl font-bold text-yellow-400">Gestor de Bloqueo Manual</h2>
+        <button onclick="closeCustomBlockGUI()" class="text-xs bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded font-bold text-white">Volver al Panel</button>
+      </div>
+
+      <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-4 shadow-lg">
+        <p class="text-xs text-gray-300">Selecciona el día y toca cualquier hora para **bloquearla** o **desbloquearla** instantáneamente:</p>
+        
+        <div id="customBlockCalendar" class="flex justify-center bg-gray-900 p-2 rounded-lg border border-gray-700"></div>
+
+        <div class="border-t border-gray-700 pt-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-bold text-yellow-400">Horarios del día <span id="blockSelectedDateLabel" class="text-white font-mono">--</span></h3>
+            <span class="text-xs text-gray-400">Rojo = Bloqueado | Amarillo = Disponible</span>
+          </div>
+
+          <div id="customBlockSlotsGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
+            <!-- Botones interactivos para bloquear -->
+          </div>
         </div>
       </div>
     </section>
@@ -205,7 +241,9 @@
     let selectedSlot = null;
     let selectedDateValue = new Date().toISOString().split('T')[0];
     let adminSelectedDateValue = new Date().toISOString().split('T')[0];
+    let blockSelectedDateValue = new Date().toISOString().split('T')[0];
     let bookedAppointments = [];
+    let customBlockedSlots = [];
     let inactivityTimer = null;
     let currentAdminPhone = "3000000000";
 
@@ -303,6 +341,17 @@
         }
       });
 
+      flatpickr("#customBlockCalendar", {
+        inline: true,
+        defaultDate: "today",
+        minDate: "today",
+        locale: "es",
+        onChange: function(selectedDates, dateStr) {
+          blockSelectedDateValue = dateStr;
+          renderCustomBlockSlots();
+        }
+      });
+
       document.getElementById('adminSelectedDateLabel').innerText = adminSelectedDateValue;
       loadScheduleConfig(adminSelectedDateValue);
       renderSlots();
@@ -321,12 +370,14 @@
 
     function showAdminDashboard() {
       document.getElementById('adminDashboard').classList.remove('hidden');
+      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
       document.getElementById('clientView').classList.add('hidden');
       document.getElementById('adminAuthBtn').innerText = 'Ver Como Cliente';
     }
 
     function showClientView() {
       document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
       document.getElementById('clientView').classList.remove('hidden');
       if (auth.currentUser) {
         document.getElementById('adminAuthBtn').innerText = 'Ir a Panel Admin';
@@ -338,7 +389,7 @@
 
     function toggleAdminModal() {
       if (auth.currentUser) {
-        const isAdminVisible = !document.getElementById('adminDashboard').classList.contains('hidden');
+        const isAdminVisible = !document.getElementById('adminDashboard').classList.contains('hidden') || !document.getElementById('adminCustomBlockGUI').classList.contains('hidden');
         if (isAdminVisible) {
           showClientView();
         } else {
@@ -346,6 +397,78 @@
         }
       } else {
         document.getElementById('loginModal').classList.remove('hidden');
+      }
+    }
+
+    // Navegación GUI Bloqueos Personalizados
+    function openCustomBlockGUI() {
+      document.getElementById('adminDashboard').classList.add('hidden');
+      document.getElementById('adminCustomBlockGUI').classList.remove('hidden');
+      renderCustomBlockSlots();
+    }
+
+    function closeCustomBlockGUI() {
+      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
+      document.getElementById('adminDashboard').classList.remove('hidden');
+      renderSlots();
+    }
+
+    // Renderizar Horarios para la GUI de Bloqueo Manual Admin
+    async function renderCustomBlockSlots() {
+      document.getElementById('blockSelectedDateLabel').innerText = blockSelectedDateValue;
+      const grid = document.getElementById('customBlockSlotsGrid');
+      grid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-sm py-4">Cargando horas del día...</p>';
+
+      let blockedList = [];
+      try {
+        const doc = await db.collection('bloqueos_manuales').doc(blockSelectedDateValue).get();
+        if (doc.exists && doc.data().slots) {
+          blockedList = doc.data().slots;
+        }
+      } catch (e) {
+        console.error("Error al cargar bloqueos manuales:", e);
+      }
+
+      grid.innerHTML = '';
+      const startHour = 9;
+      const endHour = 19;
+
+      for (let h = startHour; h < endHour; h++) {
+        ['00', '30'].forEach(m => {
+          const timeString = `${h < 10 ? '0' + h : h}:${m}`;
+          const isBlocked = blockedList.includes(timeString);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          if (isBlocked) {
+            btn.className = 'bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs transition border border-red-400 shadow';
+            btn.innerText = `${timeString} 🚫 (Bloqueado)`;
+          } else {
+            btn.className = 'bg-gray-800 hover:bg-yellow-500 hover:text-black text-yellow-400 font-bold py-2 rounded text-xs transition border border-yellow-500/30 shadow';
+            btn.innerText = timeString;
+          }
+
+          btn.onclick = () => toggleManualSlotBlock(timeString, isBlocked, blockedList);
+          grid.appendChild(btn);
+        });
+      }
+    }
+
+    async function toggleManualSlotBlock(timeString, currentlyBlocked, blockedList) {
+      let updatedList = [...blockedList];
+      if (currentlyBlocked) {
+        updatedList = updatedList.filter(t => t !== timeString);
+      } else {
+        updatedList.push(timeString);
+      }
+
+      try {
+        await db.collection('bloqueos_manuales').doc(blockSelectedDateValue).set({
+          slots: updatedList
+        }, { merge: true });
+        renderCustomBlockSlots();
+      } catch (e) {
+        alert("Error al actualizar bloqueo: " + e.message);
       }
     }
 
@@ -409,6 +532,7 @@
       }
     }
 
+    // Renderizar Citas Disponibles en la Vista Cliente con Filtro de Horas Pasadas y Bloqueos Manuales
     async function renderSlots() {
       const grid = document.getElementById('timeSlotsGrid');
       const label = document.getElementById('selectedDateLabel');
@@ -422,7 +546,16 @@
       let workEnd = "19:00";
       let lStart = "";
       let lEnd = "";
+      let manualBlocks = [];
 
+      // Obtener fecha y hora actual en tiempo real
+      const now = new Date();
+      const todayYMD = now.toISOString().split('T')[0];
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTimeStr = `${currentHour < 10 ? '0' + currentHour : currentHour}:${currentMinute < 10 ? '0' + currentMinute : currentMinute}`;
+
+      // 1. Horario General
       try {
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
@@ -436,6 +569,17 @@
         console.error("Error al obtener horario del día:", e);
       }
 
+      // 2. Bloqueos Manuales del Admin
+      try {
+        const blockDoc = await db.collection('bloqueos_manuales').doc(selectedDateValue).get();
+        if (blockDoc.exists && blockDoc.data().slots) {
+          manualBlocks = blockDoc.data().slots;
+        }
+      } catch (e) {
+        console.error("Error al obtener bloqueos manuales:", e);
+      }
+
+      // 3. Citas Reservadas
       try {
         const snapshot = await db.collection('citas')
           .where('date', '==', selectedDateValue)
@@ -462,9 +606,13 @@
 
           const isLunch = lStart && lEnd && (timeString >= lStart && timeString < lEnd);
           const isBooked = bookedAppointments.some(app => app.time === timeString);
+          const isManuallyBlocked = manualBlocks.includes(timeString);
+          
+          // Filtro para ocultar horas pasadas en el día de HOY
+          const isPastTime = (selectedDateValue === todayYMD) && (timeString <= currentTimeStr);
 
-          // MOSTRAR ÚNICAMENTE SI ESTÁ DISPONIBLE
-          if (!isLunch && !isBooked) {
+          // MOSTRAR ÚNICAMENTE SI ESTÁ DISPONIBLE, NO ES PASADO Y NO ESTÁ BLOQUEADO
+          if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime) {
             availableSlotsCount++;
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -518,9 +666,12 @@
           .get();
 
         const deletePromises = [];
+        let hadPreviousApp = false;
+
         userAppointmentsSnapshot.forEach(doc => {
           const appData = doc.data();
           if (appData.status !== 'Cancelada' && appData.date >= mondayStr && appData.date <= sundayStr) {
+            hadPreviousApp = true;
             deletePromises.push(db.collection('citas').doc(doc.id).delete());
           }
         });
@@ -547,8 +698,13 @@
         renderSlots();
 
         const cleanAdminPhone = "57" + currentAdminPhone;
-        // Texto con formato limpio y compatible para WhatsApp
-        const messageText = `Hola Yilmar, acabo de agendar una cita en ChoquibZea:\n\nNombre: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nFecha: ${appointment.date}\nHora: ${appointment.time}\nServicio: ${appointment.service}`;
+        let messageText = `Hola Yilmar, acabo de agendar una cita en ChoquibZea:\n\nNombre: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nFecha: ${appointment.date}\nHora: ${appointment.time}\nServicio: ${appointment.service}`;
+        
+        // Informar al mensaje si se eliminó una cita previa en la misma semana
+        if (hadPreviousApp) {
+          messageText += `\n\n(Nota: Se elimino automaticamente mi reserva anterior de esta misma semana.)`;
+        }
+
         const encodedMessage = encodeURIComponent(messageText);
 
         alert('¡Cita registrada con éxito! Serás redirigido a WhatsApp para enviar la confirmación.');
