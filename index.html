@@ -204,9 +204,8 @@
     let adminSelectedDateValue = new Date().toISOString().split('T')[0];
     let bookedAppointments = [];
     let inactivityTimer = null;
-    let currentAdminPhone = "3000000000"; // Número por defecto
+    let currentAdminPhone = "3000000000";
 
-    // Cierre automático de sesión tras 15 minutos sin actividad
     function resetInactivityTimer() {
       if (inactivityTimer) clearTimeout(inactivityTimer);
       if (auth.currentUser) {
@@ -221,7 +220,6 @@
     document.onmousemove = resetInactivityTimer;
     document.onkeypress = resetInactivityTimer;
 
-    // Obtener Rango de Semana (Lunes a Domingo)
     function getWeekRange(dateString) {
       const parts = dateString.split('-');
       const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -246,7 +244,6 @@
       };
     }
 
-    // Cargar / Guardar teléfono de WhatsApp del Admin desde Firebase
     async function fetchAdminWhatsapp() {
       try {
         const doc = await db.collection('configuracion').doc('general').get();
@@ -278,7 +275,6 @@
       }
     }
 
-    // Inicializar Calendarios Visuales
     document.addEventListener("DOMContentLoaded", () => {
       fetchAdminWhatsapp();
 
@@ -309,7 +305,6 @@
       renderSlots();
     });
 
-    // Control Auth
     auth.onAuthStateChanged(user => {
       if (user) {
         showAdminDashboard();
@@ -351,7 +346,6 @@
       }
     }
 
-    // Guardar / Cargar Horario Laboral del Admin
     async function loadScheduleConfig(dateStr) {
       document.getElementById('adminSelectedDateLabel').innerText = dateStr;
       try {
@@ -412,7 +406,6 @@
       }
     }
 
-    // Cargar Horarios para la Vista Cliente
     async function renderSlots() {
       const grid = document.getElementById('timeSlotsGrid');
       const label = document.getElementById('selectedDateLabel');
@@ -483,7 +476,6 @@
       }
     }
 
-    // Modal Reserva
     function openBookingModal(time) {
       selectedSlot = time;
       const serviceSelect = document.getElementById('serviceType');
@@ -500,7 +492,7 @@
       document.getElementById('bookingModal').classList.add('hidden');
     }
 
-    // Confirmar Reserva + Enviar Notificación por WhatsApp
+    // Confirmar Reserva (Filtro por Teléfono en Cliente para evitar exigir Índice de Firestore)
     async function confirmBooking(e) {
       e.preventDefault();
       const phoneInput = document.getElementById('clientPhone').value.trim();
@@ -517,16 +509,15 @@
       const { mondayStr, sundayStr } = getWeekRange(selectedDateValue);
 
       try {
-        // 1. Eliminar cita anterior del cliente en la misma semana si existe
-        const weekAppointmentsSnapshot = await db.collection('citas')
+        // Consulta simplificada para evitar pedir índice compuesto a Firestore
+        const userAppointmentsSnapshot = await db.collection('citas')
           .where('clientPhone', '==', phoneInput)
-          .where('date', '>=', mondayStr)
-          .where('date', '<=', sundayStr)
           .get();
 
         const deletePromises = [];
-        weekAppointmentsSnapshot.forEach(doc => {
-          if (doc.data().status !== 'Cancelada') {
+        userAppointmentsSnapshot.forEach(doc => {
+          const appData = doc.data();
+          if (appData.status !== 'Cancelada' && appData.date >= mondayStr && appData.date <= sundayStr) {
             deletePromises.push(db.collection('citas').doc(doc.id).delete());
           }
         });
@@ -535,7 +526,6 @@
           await Promise.all(deletePromises);
         }
 
-        // 2. Crear la nueva cita
         const appointment = {
           clientName: nameInput,
           clientPhone: phoneInput,
@@ -553,8 +543,7 @@
         document.getElementById('clientDetailsForm').reset();
         renderSlots();
 
-        // 3. Redireccionar a WhatsApp con el mensaje estructurado
-        const cleanAdminPhone = "57" + currentAdminPhone; // Prefijo de Colombia (+57)
+        const cleanAdminPhone = "57" + currentAdminPhone;
         const messageText = `¡Hola Yilmar! Acabo de agendar una cita en ChoquibZea:\n\n👤 *Nombre:* ${appointment.clientName}\n📱 *Teléfono:* ${appointment.clientPhone}\n📅 *Fecha:* ${appointment.date}\n⏰ *Hora:* ${appointment.time}\n💈 *Servicio:* ${appointment.service}`;
         const encodedMessage = encodeURIComponent(messageText);
 
