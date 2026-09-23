@@ -57,16 +57,19 @@
 
       <!-- Paso 3: Horarios Disponibles -->
       <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-3 shadow-lg">
-        <div class="flex justify-between items-center">
-          <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
-            <span>3.</span> Horarios Disponibles
-          </h2>
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-bold text-yellow-400">3. Horarios Disponibles</h2>
+            <button onclick="renderSlots()" class="text-xs bg-gray-700 hover:bg-gray-600 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded transition active:scale-95" title="Actualizar disponiblidad">
+              🔄 Actualizar
+            </button>
+          </div>
           <span id="selectedDateLabel" class="text-xs text-yellow-500 font-bold bg-yellow-500/10 px-2 py-1 rounded">--</span>
         </div>
         <p class="text-xs text-gray-400">Toca un horario disponible para agendar tu cita:</p>
 
         <div id="timeSlotsGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-          <!-- Los botones se generan dinámicamente -->
+          <!-- Los botones disponibles se generan dinámicamente -->
         </div>
       </div>
     </section>
@@ -80,7 +83,7 @@
 
       <!-- Configuración Número WhatsApp Admin -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-3 shadow-lg">
-        <h3 class="font-bold text-lg text-yellow-400">📱 WhatsApp para Recibir Notificaciones</h3>
+        <h3 class="font-bold text-lg text-yellow-400">WhatsApp para Notificaciones</h3>
         <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación de la cita:</p>
         <div class="flex gap-2">
           <input type="tel" id="adminWhatsappInput" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono text-sm focus:outline-none focus:border-yellow-500">
@@ -92,7 +95,7 @@
 
       <!-- Configuración de Horario de Trabajo -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-4 shadow-lg">
-        <h3 class="font-bold text-lg text-yellow-400">🗓️ Configurar Horario Laboral y Almuerzo</h3>
+        <h3 class="font-bold text-lg text-yellow-400">Configurar Horario Laboral y Almuerzo</h3>
         <p class="text-xs text-gray-400">Selecciona el día en el calendario y define tu horario de atención y descanso:</p>
         
         <div id="adminCalendar" class="flex justify-center bg-gray-900 p-2 rounded-lg border border-gray-700"></div>
@@ -392,8 +395,8 @@
         });
 
         if (conflictingAppointments.length > 0) {
-          const details = conflictingAppointments.map(a => `• ${a.clientName} (${a.time}) - ${a.service}`).join('\n');
-          alert(`⚠️ ATENCIÓN: No se puede cambiar el horario porque existen citas agendadas fuera de este nuevo rango:\n\n${details}\n\nPor favor atiende o reubica estas citas antes de modificar la jornada.`);
+          const details = conflictingAppointments.map(a => `- ${a.clientName} (${a.time}) - ${a.service}`).join('\n');
+          alert(`ATENCION: No se puede cambiar el horario porque existen citas agendadas fuera de este nuevo rango:\n\n${details}\n\nPor favor atiende o reubica estas citas antes de modificar la jornada.`);
           return;
         }
 
@@ -451,6 +454,8 @@
       const [sH] = workStart.split(':').map(Number);
       const [eH] = workEnd.split(':').map(Number);
 
+      let availableSlotsCount = 0;
+
       for (let h = sH; h < eH; h++) {
         ['00', '30'].forEach(m => {
           const timeString = `${h < 10 ? '0' + h : h}:${m}`;
@@ -458,21 +463,21 @@
           const isLunch = lStart && lEnd && (timeString >= lStart && timeString < lEnd);
           const isBooked = bookedAppointments.some(app => app.time === timeString);
 
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          
-          if (isLunch || isBooked) {
-            btn.disabled = true;
-            btn.className = 'bg-gray-700/50 text-gray-500 py-2.5 rounded-lg text-xs font-bold border border-gray-700 cursor-not-allowed line-through';
-            btn.innerText = `${timeString} (Ocupado)`;
-          } else {
+          // MOSTRAR ÚNICAMENTE SI ESTÁ DISPONIBLE
+          if (!isLunch && !isBooked) {
+            availableSlotsCount++;
+            const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = 'bg-gray-800 hover:bg-yellow-500 hover:text-black text-yellow-400 py-2.5 rounded-lg text-xs font-bold border border-yellow-500/30 transition active:scale-95 shadow';
             btn.innerText = timeString;
             btn.onclick = () => openBookingModal(timeString);
+            grid.appendChild(btn);
           }
-
-          grid.appendChild(btn);
         });
+      }
+
+      if (availableSlotsCount === 0) {
+        grid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-sm py-4">No hay cupos disponibles para esta fecha.</p>';
       }
     }
 
@@ -492,7 +497,6 @@
       document.getElementById('bookingModal').classList.add('hidden');
     }
 
-    // Confirmar Reserva (Filtro por Teléfono en Cliente para evitar exigir Índice de Firestore)
     async function confirmBooking(e) {
       e.preventDefault();
       const phoneInput = document.getElementById('clientPhone').value.trim();
@@ -509,7 +513,6 @@
       const { mondayStr, sundayStr } = getWeekRange(selectedDateValue);
 
       try {
-        // Consulta simplificada para evitar pedir índice compuesto a Firestore
         const userAppointmentsSnapshot = await db.collection('citas')
           .where('clientPhone', '==', phoneInput)
           .get();
@@ -544,7 +547,8 @@
         renderSlots();
 
         const cleanAdminPhone = "57" + currentAdminPhone;
-        const messageText = `¡Hola Yilmar! Acabo de agendar una cita en ChoquibZea:\n\n👤 *Nombre:* ${appointment.clientName}\n📱 *Teléfono:* ${appointment.clientPhone}\n📅 *Fecha:* ${appointment.date}\n⏰ *Hora:* ${appointment.time}\n💈 *Servicio:* ${appointment.service}`;
+        // Texto con formato limpio y compatible para WhatsApp
+        const messageText = `Hola Yilmar, acabo de agendar una cita en ChoquibZea:\n\nNombre: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nFecha: ${appointment.date}\nHora: ${appointment.time}\nServicio: ${appointment.service}`;
         const encodedMessage = encodeURIComponent(messageText);
 
         alert('¡Cita registrada con éxito! Serás redirigido a WhatsApp para enviar la confirmación.');
