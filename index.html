@@ -78,6 +78,18 @@
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-bold text-white">Cerrar Sesión</button>
       </div>
 
+      <!-- Configuración Número WhatsApp Admin -->
+      <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-3 shadow-lg">
+        <h3 class="font-bold text-lg text-yellow-400">📱 WhatsApp para Recibir Notificaciones</h3>
+        <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación de la cita:</p>
+        <div class="flex gap-2">
+          <input type="tel" id="adminWhatsappInput" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000" class="flex-1 bg-gray-700 border border-gray-600 rounded p-2 text-white font-mono text-sm focus:outline-none focus:border-yellow-500">
+          <button onclick="saveAdminWhatsapp()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded text-sm transition">
+            Guardar
+          </button>
+        </div>
+      </div>
+
       <!-- Configuración de Horario de Trabajo -->
       <div class="bg-gray-800 p-5 rounded-xl border border-yellow-500/30 space-y-4 shadow-lg">
         <h3 class="font-bold text-lg text-yellow-400">🗓️ Configurar Horario Laboral y Almuerzo</h3>
@@ -192,6 +204,7 @@
     let adminSelectedDateValue = new Date().toISOString().split('T')[0];
     let bookedAppointments = [];
     let inactivityTimer = null;
+    let currentAdminPhone = "3000000000"; // Número por defecto
 
     // Cierre automático de sesión tras 15 minutos sin actividad
     function resetInactivityTimer() {
@@ -208,7 +221,7 @@
     document.onmousemove = resetInactivityTimer;
     document.onkeypress = resetInactivityTimer;
 
-    // Obtener Rango de Semana (Lunes a Domingo) para una fecha dada
+    // Obtener Rango de Semana (Lunes a Domingo)
     function getWeekRange(dateString) {
       const parts = dateString.split('-');
       const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -233,8 +246,42 @@
       };
     }
 
+    // Cargar / Guardar teléfono de WhatsApp del Admin desde Firebase
+    async function fetchAdminWhatsapp() {
+      try {
+        const doc = await db.collection('configuracion').doc('general').get();
+        if (doc.exists && doc.data().whatsappPhone) {
+          currentAdminPhone = doc.data().whatsappPhone;
+        } else {
+          currentAdminPhone = "3000000000";
+        }
+        document.getElementById('adminWhatsappInput').value = currentAdminPhone;
+      } catch (e) {
+        console.error("Error al cargar configuración de WhatsApp:", e);
+      }
+    }
+
+    async function saveAdminWhatsapp() {
+      const inputVal = document.getElementById('adminWhatsappInput').value.trim();
+      if (inputVal.length !== 10 || isNaN(inputVal)) {
+        alert("Ingresa un número celular válido de 10 dígitos.");
+        return;
+      }
+      try {
+        await db.collection('configuracion').doc('general').set({
+          whatsappPhone: inputVal
+        }, { merge: true });
+        currentAdminPhone = inputVal;
+        alert("¡Número de WhatsApp para notificaciones guardado con éxito!");
+      } catch (e) {
+        alert("Error al guardar: " + e.message);
+      }
+    }
+
     // Inicializar Calendarios Visuales
     document.addEventListener("DOMContentLoaded", () => {
+      fetchAdminWhatsapp();
+
       flatpickr("#inlineCalendar", {
         inline: true,
         defaultDate: "today",
@@ -453,10 +500,11 @@
       document.getElementById('bookingModal').classList.add('hidden');
     }
 
-    // Confirmar Reserva con Reemplazo de Cita de la Misma Semana
+    // Confirmar Reserva + Enviar Notificación por WhatsApp
     async function confirmBooking(e) {
       e.preventDefault();
       const phoneInput = document.getElementById('clientPhone').value.trim();
+      const nameInput = document.getElementById('clientName').value.trim();
 
       if (phoneInput.length !== 10 || isNaN(phoneInput)) {
         alert('Por favor ingresa un número celular válido de 10 dígitos.');
@@ -469,21 +517,16 @@
       const { mondayStr, sundayStr } = getWeekRange(selectedDateValue);
 
       try {
-        // 1. Buscar citas previas del usuario en la misma semana
+        // 1. Eliminar cita anterior del cliente en la misma semana si existe
         const weekAppointmentsSnapshot = await db.collection('citas')
           .where('clientPhone', '==', phoneInput)
           .where('date', '>=', mondayStr)
           .where('date', '<=', sundayStr)
           .get();
 
-        let previousReplaced = false;
-
-        // 2. Eliminar cita anterior de esa misma semana
         const deletePromises = [];
         weekAppointmentsSnapshot.forEach(doc => {
-          const appData = doc.data();
-          if (appData.status !== 'Cancelada') {
-            previousReplaced = true;
+          if (doc.data().status !== 'Cancelada') {
             deletePromises.push(db.collection('citas').doc(doc.id).delete());
           }
         });
@@ -492,9 +535,9 @@
           await Promise.all(deletePromises);
         }
 
-        // 3. Crear la nueva cita
+        // 2. Crear la nueva cita
         const appointment = {
-          clientName: document.getElementById('clientName').value.trim(),
+          clientName: nameInput,
           clientPhone: phoneInput,
           service: selectedOption.text,
           duration: parseInt(selectedOption.getAttribute('data-duration')),
@@ -506,15 +549,18 @@
 
         await db.collection('citas').add(appointment);
 
-        if (previousReplaced) {
-          alert('¡Tu cita anterior de esta semana fue eliminada y reemplazada con éxito por la nueva reserva!');
-        } else {
-          alert('¡Cita agendada exitosamente en ChoquibZea!');
-        }
-
         closeBookingModal();
         document.getElementById('clientDetailsForm').reset();
         renderSlots();
+
+        // 3. Redireccionar a WhatsApp con el mensaje estructurado
+        const cleanAdminPhone = "57" + currentAdminPhone; // Prefijo de Colombia (+57)
+        const messageText = `¡Hola Yilmar! Acabo de agendar una cita en ChoquibZea:\n\n👤 *Nombre:* ${appointment.clientName}\n📱 *Teléfono:* ${appointment.clientPhone}\n📅 *Fecha:* ${appointment.date}\n⏰ *Hora:* ${appointment.time}\n💈 *Servicio:* ${appointment.service}`;
+        const encodedMessage = encodeURIComponent(messageText);
+
+        alert('¡Cita registrada con éxito! Serás redirigido a WhatsApp para enviar la confirmación.');
+        window.open(`https://wa.me/${cleanAdminPhone}?text=${encodedMessage}`, '_blank');
+
       } catch (err) {
         alert('Error al procesar la reserva: ' + err.message);
       }
