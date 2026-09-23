@@ -210,7 +210,6 @@
 
     // Inicializar Calendarios Visuales
     document.addEventListener("DOMContentLoaded", () => {
-      // Calendario Cliente
       flatpickr("#inlineCalendar", {
         inline: true,
         defaultDate: "today",
@@ -222,7 +221,6 @@
         }
       });
 
-      // Calendario Admin
       flatpickr("#adminCalendar", {
         inline: true,
         defaultDate: "today",
@@ -293,7 +291,6 @@
           document.getElementById('lunchStart').value = data.lunchStart || "";
           document.getElementById('lunchEnd').value = data.lunchEnd || "";
         } else {
-          // Valores por defecto
           document.getElementById('startTime').value = "09:00";
           document.getElementById('endTime').value = "19:00";
           document.getElementById('lunchStart').value = "12:30";
@@ -306,19 +303,41 @@
 
     async function saveSchedule(e) {
       e.preventDefault();
-      const schedule = {
-        startTime: document.getElementById('startTime').value,
-        endTime: document.getElementById('endTime').value,
-        lunchStart: document.getElementById('lunchStart').value,
-        lunchEnd: document.getElementById('lunchEnd').value
-      };
+      const startTime = document.getElementById('startTime').value;
+      const endTime = document.getElementById('endTime').value;
+      const lunchStart = document.getElementById('lunchStart').value;
+      const lunchEnd = document.getElementById('lunchEnd').value;
 
+      // 1. Validar si existen citas reservadas/confirmadas que queden fuera del nuevo horario
       try {
+        const snapshot = await db.collection('citas')
+          .where('date', '==', adminSelectedDateValue)
+          .get();
+
+        const activeAppointments = snapshot.docs
+          .map(doc => doc.data())
+          .filter(app => app.status !== 'Cancelada');
+
+        const conflictingAppointments = activeAppointments.filter(app => {
+          const appTime = app.time;
+          const isBeforeOpen = appTime < startTime;
+          const isAfterClose = appTime >= endTime;
+          const isDuringLunch = lunchStart && lunchEnd && (appTime >= lunchStart && appTime < lunchEnd);
+          return isBeforeOpen || isAfterClose || isDuringLunch;
+        });
+
+        if (conflictingAppointments.length > 0) {
+          const details = conflictingAppointments.map(a => `• ${a.clientName} (${a.time}) - ${a.service}`).join('\n');
+          alert(`⚠️ ATENCIÓN: No se puede cambiar el horario porque existen citas agendadas fuera de este nuevo rango:\n\n${details}\n\nPor favor atiende o reubica estas citas antes de modificar la jornada.`);
+          return;
+        }
+
+        const schedule = { startTime, endTime, lunchStart, lunchEnd };
         await db.collection('horarios').doc(adminSelectedDateValue).set(schedule);
         alert('¡Horario guardado correctamente para el ' + adminSelectedDateValue + '!');
         renderSlots();
       } catch (err) {
-        alert('Error al guardar el horario: ' + err.message);
+        alert('Error al validar o guardar el horario: ' + err.message);
       }
     }
 
@@ -337,7 +356,6 @@
       let lStart = "";
       let lEnd = "";
 
-      // Consultar horario personalizado del día
       try {
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
@@ -351,7 +369,6 @@
         console.error("Error al obtener horario del día:", e);
       }
 
-      // Consultar citas reservadas
       try {
         const snapshot = await db.collection('citas')
           .where('date', '==', selectedDateValue)
@@ -367,26 +384,20 @@
 
       grid.innerHTML = '';
       
-      const [sH, sM] = workStart.split(':').map(Number);
-      const [eH, eM] = workEnd.split(':').map(Number);
+      const [sH] = workStart.split(':').map(Number);
+      const [eH] = workEnd.split(':').map(Number);
 
       for (let h = sH; h < eH; h++) {
         ['00', '30'].forEach(m => {
           const timeString = `${h < 10 ? '0' + h : h}:${m}`;
 
-          // Validar si está en hora de almuerzo
           const isLunch = lStart && lEnd && (timeString >= lStart && timeString < lEnd);
-          // Validar si ya está agendada
           const isBooked = bookedAppointments.some(app => app.time === timeString);
 
           const btn = document.createElement('button');
           btn.type = 'button';
           
-          if (isLunch) {
-            btn.disabled = true;
-            btn.className = 'bg-gray-800/40 text-gray-500 py-2.5 rounded-lg text-xs font-bold border border-gray-800 cursor-not-allowed';
-            btn.innerText = `${timeString} (Almuerzo)`;
-          } else if (isBooked) {
+          if (isLunch || isBooked) {
             btn.disabled = true;
             btn.className = 'bg-gray-700/50 text-gray-500 py-2.5 rounded-lg text-xs font-bold border border-gray-700 cursor-not-allowed line-through';
             btn.innerText = `${timeString} (Ocupado)`;
