@@ -208,6 +208,31 @@
     document.onmousemove = resetInactivityTimer;
     document.onkeypress = resetInactivityTimer;
 
+    // Obtener Rango de Semana (Lunes a Domingo) para una fecha dada
+    function getWeekRange(dateString) {
+      const parts = dateString.split('-');
+      const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      
+      const day = targetDate.getDay();
+      const diffToMonday = targetDate.getDate() - day + (day === 0 ? -6 : 1);
+      
+      const monday = new Date(targetDate.setDate(diffToMonday));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      const formatYMD = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      return {
+        mondayStr: formatYMD(monday),
+        sundayStr: formatYMD(sunday)
+      };
+    }
+
     // Inicializar Calendarios Visuales
     document.addEventListener("DOMContentLoaded", () => {
       flatpickr("#inlineCalendar", {
@@ -308,7 +333,6 @@
       const lunchStart = document.getElementById('lunchStart').value;
       const lunchEnd = document.getElementById('lunchEnd').value;
 
-      // 1. Validar si existen citas reservadas/confirmadas que queden fuera del nuevo horario
       try {
         const snapshot = await db.collection('citas')
           .where('date', '==', adminSelectedDateValue)
@@ -429,7 +453,7 @@
       document.getElementById('bookingModal').classList.add('hidden');
     }
 
-    // Confirmar Reserva
+    // Confirmar Reserva con Reemplazo de Cita de la Misma Semana
     async function confirmBooking(e) {
       e.preventDefault();
       const phoneInput = document.getElementById('clientPhone').value.trim();
@@ -442,25 +466,57 @@
       const serviceSelect = document.getElementById('serviceType');
       const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
 
-      const appointment = {
-        clientName: document.getElementById('clientName').value.trim(),
-        clientPhone: phoneInput,
-        service: selectedOption.text,
-        duration: parseInt(selectedOption.getAttribute('data-duration')),
-        date: selectedDateValue,
-        time: selectedSlot,
-        status: 'Pendiente',
-        createdAt: new Date()
-      };
+      const { mondayStr, sundayStr } = getWeekRange(selectedDateValue);
 
       try {
+        // 1. Buscar citas previas del usuario en la misma semana
+        const weekAppointmentsSnapshot = await db.collection('citas')
+          .where('clientPhone', '==', phoneInput)
+          .where('date', '>=', mondayStr)
+          .where('date', '<=', sundayStr)
+          .get();
+
+        let previousReplaced = false;
+
+        // 2. Eliminar cita anterior de esa misma semana
+        const deletePromises = [];
+        weekAppointmentsSnapshot.forEach(doc => {
+          const appData = doc.data();
+          if (appData.status !== 'Cancelada') {
+            previousReplaced = true;
+            deletePromises.push(db.collection('citas').doc(doc.id).delete());
+          }
+        });
+
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
+        }
+
+        // 3. Crear la nueva cita
+        const appointment = {
+          clientName: document.getElementById('clientName').value.trim(),
+          clientPhone: phoneInput,
+          service: selectedOption.text,
+          duration: parseInt(selectedOption.getAttribute('data-duration')),
+          date: selectedDateValue,
+          time: selectedSlot,
+          status: 'Pendiente',
+          createdAt: new Date()
+        };
+
         await db.collection('citas').add(appointment);
-        alert('¡Cita agendada exitosamente en ChoquibZea!');
+
+        if (previousReplaced) {
+          alert('¡Tu cita anterior de esta semana fue eliminada y reemplazada con éxito por la nueva reserva!');
+        } else {
+          alert('¡Cita agendada exitosamente en ChoquibZea!');
+        }
+
         closeBookingModal();
         document.getElementById('clientDetailsForm').reset();
         renderSlots();
       } catch (err) {
-        alert('Error al agendar cita: ' + err.message);
+        alert('Error al procesar la reserva: ' + err.message);
       }
     }
 
