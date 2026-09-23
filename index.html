@@ -13,67 +13,61 @@
 <body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
 
   <!-- Header -->
-  <header class="bg-black/80 backdrop-blur border-b border-gold-500/30 p-4 flex justify-between items-center sticky top-0 z-50">
-    <h1 class="text-2xl font-black tracking-wider text-yellow-500">CHOQUIBZEA</h1>
-    <button id="adminAuthBtn" onclick="toggleAdminModal()" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-black font-bold px-3 py-1.5 rounded transition">
+  <header class="bg-black/90 backdrop-blur border-b border-yellow-500/30 p-4 flex justify-between items-center sticky top-0 z-40">
+    <div>
+      <h1 class="text-2xl font-black tracking-wider text-yellow-500">CHOQUIBZEA</h1>
+      <p class="text-xs text-gray-400">Reserva de Citas</p>
+    </div>
+    <button id="adminAuthBtn" onclick="toggleAdminModal()" class="text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-3 py-1.5 rounded transition">
       Panel Admin
     </button>
   </header>
 
-  <main class="flex-1 max-w-xl w-full mx-auto p-4">
-    <!-- Vista Cliente -->
+  <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-6">
+    <!-- VISTA CLIENTE -->
     <section id="clientView" class="space-y-6">
-      <div class="text-center py-4">
-        <h2 class="text-xl font-bold">Reserva tu Cita</h2>
-        <p class="text-gray-400 text-sm">Selecciona tu servicio y horario ideal</p>
-      </div>
-
-      <form id="bookingForm" onsubmit="handleBooking(event)" class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-4">
+      <!-- Paso 1: Selección de Servicio y Fecha -->
+      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-4 shadow-lg">
+        <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
+          <span>1.</span> Selecciona Servicio y Fecha
+        </h2>
+        
         <div>
-          <label class="block text-sm font-medium mb-1">Nombre Completo</label>
-          <input type="text" id="clientName" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500" placeholder="Ej: Carlos Pérez">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Teléfono (WhatsApp)</label>
-          <input type="tel" id="clientPhone" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500" placeholder="Ej: 3001234567">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Tipo de Servicio</label>
-          <select id="serviceType" onchange="updateDurationInfo()" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
+          <label class="block text-xs text-gray-400 mb-1">Servicio deseado</label>
+          <select id="serviceType" onchange="renderSlots()" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-white focus:outline-none focus:border-yellow-500 font-medium">
             <option value="normal" data-duration="30">Corte Normal (30 min)</option>
             <option value="barba_cejas" data-duration="40">Corte + Barba / Cejas (40 min)</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1">Fecha</label>
-          <input type="date" id="bookingDate" required onchange="loadAvailableSlots()" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
+          <label class="block text-xs text-gray-400 mb-1">Fecha</label>
+          <input type="date" id="bookingDate" onchange="renderSlots()" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-white focus:outline-none focus:border-yellow-500 font-medium">
         </div>
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium mb-1">Hora Disponible</label>
-          <select id="bookingTime" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
-            <option value="">Selecciona fecha primero</option>
-          </select>
+      <!-- Paso 2: Grilla de Horarios -->
+      <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 space-y-4 shadow-lg">
+        <h2 class="text-lg font-bold text-yellow-400 flex items-center gap-2">
+          <span>2.</span> Selecciona un Horario Disponible
+        </h2>
+        <p class="text-xs text-gray-400">Toca la hora que prefieras para agendar:</p>
+
+        <div id="timeSlotsGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <!-- Los botones de horario se generan con JavaScript -->
         </div>
-
-        <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-lg transition shadow-lg">
-          Confirmar Reserva
-        </button>
-      </form>
+      </div>
     </section>
 
-    <!-- Vista Admin (Oculta por defecto) -->
+    <!-- VISTA ADMIN -->
     <section id="adminDashboard" class="hidden space-y-6">
       <div class="flex justify-between items-center border-b border-gray-700 pb-3">
         <h2 class="text-xl font-bold text-yellow-400">Panel de Control (Yilmar)</h2>
-        <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 rounded">Cerrar Sesión</button>
+        <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 rounded font-bold">Cerrar Sesión</button>
       </div>
 
-      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
-        <h3 class="font-bold mb-3">Gestión de Citas</h3>
+      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 space-y-3">
+        <h3 class="font-bold text-lg">Citas Agendadas</h3>
         <div id="appointmentsList" class="space-y-3">
           <p class="text-gray-400 text-sm">Cargando citas...</p>
         </div>
@@ -81,21 +75,50 @@
     </section>
   </main>
 
-  <!-- Modal Login Admin -->
-  <div id="loginModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+  <!-- MODAL DE CONFIRMACIÓN DE DATOS DEL CLIENTE -->
+  <div id="bookingModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-sm w-full space-y-4 shadow-2xl">
+      <h3 class="text-lg font-bold text-yellow-400">Confirmar Cita</h3>
+      
+      <div class="bg-gray-700/50 p-3 rounded-lg text-sm space-y-1 border border-gray-600">
+        <p><span class="text-gray-400">Fecha:</span> <strong id="modalSummaryDate" class="text-white">--</strong></p>
+        <p><span class="text-gray-400">Hora:</span> <strong id="modalSummaryTime" class="text-yellow-400">--</strong></p>
+        <p><span class="text-gray-400">Servicio:</span> <strong id="modalSummaryService" class="text-white">--</strong></p>
+      </div>
+
+      <form id="clientDetailsForm" onsubmit="confirmBooking(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs text-gray-300 mb-1">Tu Nombre Completo</label>
+          <input type="text" id="clientName" required placeholder="Ej: Carlos Pérez" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-300 mb-1">Teléfono (WhatsApp)</label>
+          <input type="tel" id="clientPhone" required placeholder="Ej: 3001234567" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-yellow-500">
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="submit" class="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2.5 rounded-lg transition">Agendar Ahora</button>
+          <button type="button" onclick="closeBookingModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2.5 rounded-lg transition">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL LOGIN ADMIN -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-sm w-full space-y-4">
-      <h3 class="text-lg font-bold text-center">Acceso Superusuario</h3>
-      <input type="email" id="adminEmail" placeholder="Correo electrónico" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+      <h3 class="text-lg font-bold text-center text-yellow-400">Acceso Admin ChoquibZea</h3>
+      <input type="email" id="adminEmail" placeholder="Correo de Yilmar" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
       <input type="password" id="adminPassword" placeholder="Contraseña" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
       <div class="flex gap-2">
         <button onclick="loginAdmin()" class="flex-1 bg-yellow-500 text-black font-bold py-2 rounded">Ingresar</button>
-        <button onclick="toggleAdminModal()" class="flex-1 bg-gray-600 text-white py-2 rounded">Cancelar</button>
+        <button onclick="toggleAdminModal()" class="flex-1 bg-gray-600 text-white py-2 rounded">Cerrar</button>
       </div>
     </div>
   </div>
 
   <script>
-    // 1. Configuración de Firebase (Reemplaza con tus llaves de Firebase Console)
+    // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "TU_API_KEY",
       authDomain: "tu-app.firebaseapp.com",
@@ -109,24 +132,124 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Estado Auth
+    let selectedSlot = null;
+    let bookedAppointments = [];
+
+    // Establecer fecha de hoy por defecto en el input
+    document.getElementById('bookingDate').value = new Date().toISOString().split('T')[0];
+
+    // Control de Estado de Autenticación
     auth.onAuthStateChanged(user => {
       if (user) {
         document.getElementById('adminDashboard').classList.remove('hidden');
         document.getElementById('clientView').classList.add('hidden');
-        document.getElementById('adminAuthBtn').innerText = 'Ver Vista Cliente';
+        document.getElementById('adminAuthBtn').innerText = 'Vista Cliente';
         loadAdminAppointments();
       } else {
         document.getElementById('adminDashboard').classList.add('hidden');
         document.getElementById('clientView').classList.remove('hidden');
         document.getElementById('adminAuthBtn').innerText = 'Panel Admin';
+        renderSlots();
       }
     });
 
-    // Toggle Modal Login
+    // Generar la grilla de horarios disponibles/ocupados
+    async function renderSlots() {
+      const selectedDate = document.getElementById('bookingDate').value;
+      const grid = document.getElementById('timeSlotsGrid');
+      grid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-sm py-4">Cargando disponibilidad...</p>';
+
+      if (!selectedDate) return;
+
+      // Obtener citas existentes para el día seleccionado
+      try {
+        const snapshot = await db.collection('citas')
+          .where('date', '==', selectedDate)
+          .where('status', '!=', 'Cancelada')
+          .get();
+
+        bookedAppointments = snapshot.docs.map(doc => doc.data());
+      } catch (e) {
+        console.error("Error al obtener citas:", e);
+        bookedAppointments = [];
+      }
+
+      grid.innerHTML = '';
+      const startHour = 9;  // 9:00 AM
+      const endHour = 19;   // 7:00 PM
+
+      for (let h = startHour; h < endHour; h++) {
+        ['00', '30'].forEach(m => {
+          const timeString = `${h < 10 ? '0' + h : h}:${m}`;
+          const isBooked = bookedAppointments.some(app => app.time === timeString);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          
+          if (isBooked) {
+            btn.disabled = true;
+            btn.className = 'bg-gray-700 text-gray-500 py-3 rounded-lg text-sm font-bold border border-gray-600 cursor-not-allowed line-through';
+            btn.innerText = `${timeString} (Ocupado)`;
+          } else {
+            btn.className = 'bg-gray-800 hover:bg-yellow-500 hover:text-black text-yellow-400 py-3 rounded-lg text-sm font-bold border border-yellow-500/40 transition active:scale-95';
+            btn.innerText = timeString;
+            btn.onclick = () => openBookingModal(timeString);
+          }
+
+          grid.appendChild(btn);
+        });
+      }
+    }
+
+    // Abrir Modal de Confirmación
+    function openBookingModal(time) {
+      selectedSlot = time;
+      const serviceSelect = document.getElementById('serviceType');
+      const serviceText = serviceSelect.options[serviceSelect.selectedIndex].text;
+      const dateText = document.getElementById('bookingDate').value;
+
+      document.getElementById('modalSummaryDate').innerText = dateText;
+      document.getElementById('modalSummaryTime').innerText = time;
+      document.getElementById('modalSummaryService').innerText = serviceText;
+
+      document.getElementById('bookingModal').classList.remove('hidden');
+    }
+
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    // Guardar Cita en Firestore
+    async function confirmBooking(e) {
+      e.preventDefault();
+      const serviceSelect = document.getElementById('serviceType');
+      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+
+      const appointment = {
+        clientName: document.getElementById('clientName').value,
+        clientPhone: document.getElementById('clientPhone').value,
+        service: selectedOption.text,
+        duration: parseInt(selectedOption.getAttribute('data-duration')),
+        date: document.getElementById('bookingDate').value,
+        time: selectedSlot,
+        status: 'Pendiente',
+        createdAt: new Date()
+      };
+
+      try {
+        await db.collection('citas').add(appointment);
+        alert('¡Tu cita ha sido agendada con éxito!');
+        closeBookingModal();
+        document.getElementById('clientDetailsForm').reset();
+        renderSlots(); // Actualizar la lista para que el turno quede ocupado
+      } catch (err) {
+        alert('Error al agendar: ' + err.message);
+      }
+    }
+
+    // Funciones del Admin
     function toggleAdminModal() {
       if(auth.currentUser) {
-        // Si ya está logueado, alterna vistas
         document.getElementById('adminDashboard').classList.toggle('hidden');
         document.getElementById('clientView').classList.toggle('hidden');
       } else {
@@ -134,7 +257,6 @@
       }
     }
 
-    // Login Admin
     async function loginAdmin() {
       const email = document.getElementById('adminEmail').value;
       const pass = document.getElementById('adminPassword').value;
@@ -150,59 +272,13 @@
       auth.signOut();
     }
 
-    // Generar horarios de 30 min (ejemplo: 9:00 AM - 7:00 PM)
-    function loadAvailableSlots() {
-      const selectTime = document.getElementById('bookingTime');
-      selectTime.innerHTML = '';
-      
-      const startHour = 9;
-      const endHour = 19;
-
-      for (let h = startHour; h < endHour; h++) {
-        ['00', '30'].forEach(m => {
-          const timeString = `${h < 10 ? '0' + h : h}:${m}`;
-          const option = document.createElement('option');
-          option.value = timeString;
-          option.innerText = timeString;
-          selectTime.appendChild(option);
-        });
-      }
-    }
-
-    // Agendar Cita
-    async function handleBooking(e) {
-      e.preventDefault();
-      const serviceSelect = document.getElementById('serviceType');
-      const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-
-      const appointment = {
-        clientName: document.getElementById('clientName').value,
-        clientPhone: document.getElementById('clientPhone').value,
-        service: selectedOption.text,
-        duration: parseInt(selectedOption.getAttribute('data-duration')),
-        date: document.getElementById('bookingDate').value,
-        time: document.getElementById('bookingTime').value,
-        status: 'Pendiente',
-        createdAt: new Date()
-      };
-
-      try {
-        await db.collection('citas').add(appointment);
-        alert('¡Cita agendada con éxito!');
-        document.getElementById('bookingForm').reset();
-      } catch (err) {
-        alert('Error al agendar: ' + err.message);
-      }
-    }
-
-    // Cargar Citas en el Admin
     function loadAdminAppointments() {
       db.collection('citas').orderBy('date', 'desc').onSnapshot(snapshot => {
         const list = document.getElementById('appointmentsList');
         list.innerHTML = '';
 
         if(snapshot.empty) {
-          list.innerHTML = '<p class="text-gray-400">No hay citas registradas.</p>';
+          list.innerHTML = '<p class="text-gray-400 text-sm">No hay citas registradas.</p>';
           return;
         }
 
@@ -222,9 +298,9 @@
               <span class="text-xs font-bold px-2 py-1 rounded bg-gray-800">${data.status}</span>
             </div>
             <div class="flex gap-2 text-xs pt-2 border-t border-gray-600">
-              <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-green-600 hover:bg-green-500 px-2 py-1 rounded">Confirmar</button>
-              <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded">Cancelar</button>
-              <button onclick="deleteAppointment('${doc.id}')" class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded ml-auto">Eliminar</button>
+              <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-green-600 hover:bg-green-500 px-2 py-1 rounded font-bold">Confirmar</button>
+              <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded font-bold">Cancelar</button>
+              <button onclick="deleteAppointment('${doc.id}')" class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded font-bold ml-auto">Eliminar</button>
             </div>
           `;
           list.appendChild(item);
