@@ -94,6 +94,26 @@
         </div>
       </div>
 
+      <!-- SECCIÓN: BUSCADOR / MODIFICADOR DE CITA PARA CLIENTES -->
+      <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
+        <div class="flex items-center gap-2 text-amber-400">
+          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <h2 class="text-lg font-bold text-amber-400">¿Ya tienes una Cita Agendada?</h2>
+        </div>
+        <p class="text-xs text-gray-400">Ingresa tu número de WhatsApp para consultar, modificar o cancelar tu reserva:</p>
+
+        <div class="flex gap-2">
+          <input type="tel" id="searchClientPhone" pattern="[0-9]{10}" maxlength="10" placeholder="Ej: 3001234567" class="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-2.5 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
+          <button onclick="searchClientAppointment()" class="bg-amber-500 hover:bg-amber-400 text-black font-extrabold px-4 py-2.5 rounded-xl text-xs transition shadow-md">
+            Buscar Cita
+          </button>
+        </div>
+
+        <div id="searchAppointmentResult" class="hidden pt-2">
+          <!-- Resultado dinámico de la búsqueda de cita -->
+        </div>
+      </div>
+
       <!-- Paso 1: Servicio -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
         <div class="flex items-center gap-2 text-amber-400">
@@ -308,7 +328,8 @@
         </div>
 
         <div class="flex gap-2 pt-2">
-          <button type="submit" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-sm">Confirmar Cita</button>
+          <!-- Botón de Confirmación con Deshabilitación Antiduplicados -->
+          <button type="submit" id="confirmBookingBtn" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-sm">Confirmar Cita</button>
           <button type="button" onclick="closeBookingModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl transition text-sm font-bold">Cancelar</button>
         </div>
       </form>
@@ -550,6 +571,92 @@
       renderSlots();
     }
 
+    /* BUSCADOR DE CITAS DE CLIENTE POR TELÉFONO */
+    async function searchClientAppointment() {
+      const phone = document.getElementById('searchClientPhone').value.trim();
+      const resContainer = document.getElementById('searchAppointmentResult');
+
+      if (phone.length !== 10 || isNaN(phone)) {
+        alert("Por favor ingresa un número celular válido de 10 dígitos.");
+        return;
+      }
+
+      resContainer.classList.remove('hidden');
+      resContainer.innerHTML = '<p class="text-xs text-gray-400 font-mono">Buscando citas...</p>';
+
+      try {
+        const todayStr = getLocalDateString();
+        const snapshot = await db.collection('citas')
+          .where('clientPhone', '==', phone)
+          .get();
+
+        const activeApps = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(app => app.status !== 'Cancelada' && app.date >= todayStr);
+
+        if (activeApps.length === 0) {
+          resContainer.innerHTML = '<p class="text-xs text-amber-400 font-bold bg-amber-950/40 p-3 rounded-xl border border-amber-500/30">No tienes citas activas agendadas.</p>';
+          return;
+        }
+
+        resContainer.innerHTML = '';
+        activeApps.forEach(app => {
+          const card = document.createElement('div');
+          card.className = "bg-gray-900 border border-amber-500/30 p-3.5 rounded-xl space-y-2 mt-2";
+          card.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-xs text-amber-400 font-bold font-mono">📅 ${app.date} - ⏰ ${app.time}</p>
+                <p class="text-xs text-white font-semibold mt-0.5">${app.service}</p>
+                <p class="text-[11px] text-gray-400">Cliente: ${app.clientName}</p>
+              </div>
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">${app.status}</span>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="cancelClientAppointment('${app.id}')" class="flex-1 bg-red-600/80 hover:bg-red-600 text-white font-bold py-1.5 rounded-lg text-xs transition">
+                Cancelar Cita
+              </button>
+              <button onclick="modifyClientAppointment('${app.id}', '${app.clientName}', '${app.clientPhone}')" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-extrabold py-1.5 rounded-lg text-xs transition">
+                Cambiar Fecha/Hora
+              </button>
+            </div>
+          `;
+          resContainer.appendChild(card);
+        });
+
+      } catch (err) {
+        resContainer.innerHTML = `<p class="text-xs text-red-400">Error al buscar: ${err.message}</p>`;
+      }
+    }
+
+    async function cancelClientAppointment(appId) {
+      if (confirm("¿Estás seguro de que deseas cancelar tu cita?")) {
+        try {
+          await db.collection('citas').doc(appId).update({ status: 'Cancelada' });
+          alert("Tu cita ha sido cancelada exitosamente.");
+          searchClientAppointment();
+          renderSlots();
+        } catch (e) {
+          alert("Error al cancelar: " + e.message);
+        }
+      }
+    }
+
+    async function modifyClientAppointment(appId, clientName, clientPhone) {
+      if (confirm("Para cambiar de fecha u hora, cancelaremos tu cita actual y podrás elegir el nuevo cupo que prefieras.")) {
+        try {
+          await db.collection('citas').doc(appId).update({ status: 'Cancelada' });
+          document.getElementById('clientName').value = clientName;
+          document.getElementById('clientPhone').value = clientPhone;
+          alert("Tu cita previa fue liberada. Por favor selecciona ahora tu nueva fecha u hora deseada en la lista.");
+          searchClientAppointment();
+          renderSlots();
+        } catch (e) {
+          alert("Error al reubicar: " + e.message);
+        }
+      }
+    }
+
     async function renderCustomBlockSlots() {
       document.getElementById('blockSelectedDateLabel').innerText = blockSelectedDateValue;
       const grid = document.getElementById('customBlockSlotsGrid');
@@ -776,6 +883,14 @@
       document.getElementById('modalSummaryTime').innerText = time;
       document.getElementById('modalSummaryService').innerText = serviceText;
 
+      // Restablecer estado activo del botón de confirmación
+      const btn = document.getElementById('confirmBookingBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = 'Confirmar Cita';
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
       document.getElementById('bookingModal').classList.remove('hidden');
     }
 
@@ -785,11 +900,24 @@
 
     async function confirmBooking(e) {
       e.preventDefault();
+
+      const btn = document.getElementById('confirmBookingBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Procesando...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+
       const phoneInput = document.getElementById('clientPhone').value.trim();
       const nameInput = document.getElementById('clientName').value.trim();
 
       if (phoneInput.length !== 10 || isNaN(phoneInput)) {
         alert('Por favor ingresa un número celular válido de 10 dígitos.');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Confirmar Cita';
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
         return;
       }
 
@@ -849,6 +977,11 @@
 
       } catch (err) {
         alert('Error al procesar la reserva: ' + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Confirmar Cita';
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
       }
     }
 
