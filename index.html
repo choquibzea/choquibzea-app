@@ -344,10 +344,18 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // Función auxiliar de fecha local estricta (YYYY-MM-DD)
+    function getLocalDateString(d = new Date()) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     let selectedSlot = null;
-    let selectedDateValue = new Date().toISOString().split('T')[0];
-    let adminSelectedDateValue = new Date().toISOString().split('T')[0];
-    let blockSelectedDateValue = new Date().toISOString().split('T')[0];
+    let selectedDateValue = getLocalDateString();
+    let adminSelectedDateValue = getLocalDateString();
+    let blockSelectedDateValue = getLocalDateString();
     let bookedAppointments = [];
     let customBlockedSlots = [];
     let inactivityTimer = null;
@@ -370,20 +378,24 @@
     function getDefaultScheduleForDate(dateString) {
       const parts = dateString.split('-');
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      const dayOfWeek = d.getDay();
+      const dayOfWeek = d.getDay(); // 0: Domingo, 1: Lunes, 2: Martes...
 
       if (dayOfWeek === 1) {
+        // Lunes: 4:00 PM a 8:00 PM
         return { startTime: "16:00", endTime: "20:00", lunchStart: "", lunchEnd: "" };
       } else if (dayOfWeek >= 2 && dayOfWeek <= 6) {
+        // Martes a Sábado: 10:00 AM a 1:30 PM y 4:00 PM a 8:00 PM
         return { startTime: "10:00", endTime: "20:00", lunchStart: "13:30", lunchEnd: "16:00" };
       } else {
+        // Domingo: Cerrado por defecto
         return { startTime: "00:00", endTime: "00:00", lunchStart: "", lunchEnd: "" };
       }
     }
 
     function timeToMinutes(tStr) {
-      if (!tStr) return -1;
+      if (!tStr || tStr.trim() === "") return -1;
       const [h, m] = tStr.split(':').map(Number);
+      if (isNaN(h) || isNaN(m)) return -1;
       return h * 60 + m;
     }
 
@@ -398,16 +410,9 @@
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
 
-      const formatYMD = (d) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
       return {
-        mondayStr: formatYMD(monday),
-        sundayStr: formatYMD(sunday)
+        mondayStr: getLocalDateString(monday),
+        sundayStr: getLocalDateString(sunday)
       };
     }
 
@@ -445,14 +450,14 @@
     document.addEventListener("DOMContentLoaded", () => {
       fetchAdminWhatsapp();
 
-      const todayYMD = new Date().toISOString().split('T')[0];
+      const todayYMD = getLocalDateString();
       const filterInput = document.getElementById('adminFilterDate');
       if (filterInput) filterInput.value = todayYMD;
 
       flatpickr("#inlineCalendar", {
         inline: true,
-        defaultDate: "today",
-        minDate: "today",
+        defaultDate: todayYMD,
+        minDate: todayYMD,
         locale: "es",
         onChange: function(selectedDates, dateStr) {
           selectedDateValue = dateStr;
@@ -462,8 +467,8 @@
 
       flatpickr("#adminCalendar", {
         inline: true,
-        defaultDate: "today",
-        minDate: "today",
+        defaultDate: todayYMD,
+        minDate: todayYMD,
         locale: "es",
         onChange: function(selectedDates, dateStr) {
           adminSelectedDateValue = dateStr;
@@ -473,8 +478,8 @@
 
       flatpickr("#customBlockCalendar", {
         inline: true,
-        defaultDate: "today",
-        minDate: "today",
+        defaultDate: todayYMD,
+        minDate: todayYMD,
         locale: "es",
         onChange: function(selectedDates, dateStr) {
           blockSelectedDateValue = dateStr;
@@ -604,7 +609,7 @@
       document.getElementById('adminSelectedDateLabel').innerText = dateStr;
       try {
         const doc = await db.collection('horarios').doc(dateStr).get();
-        if (doc.exists) {
+        if (doc.exists && doc.data().startTime && doc.data().startTime !== "00:00") {
           const data = doc.data();
           document.getElementById('startTime').value = data.startTime;
           document.getElementById('endTime').value = data.endTime;
@@ -670,14 +675,15 @@
       label.innerText = selectedDateValue;
       grid.innerHTML = '<p class="col-span-full text-center text-gray-400 text-sm py-4">Buscando disponibilidad...</p>';
 
-      let workStart = "10:00";
-      let workEnd = "20:00";
-      let lStart = "";
-      let lEnd = "";
+      let defSched = getDefaultScheduleForDate(selectedDateValue);
+      let workStart = defSched.startTime;
+      let workEnd = defSched.endTime;
+      let lStart = defSched.lunchStart;
+      let lEnd = defSched.lunchEnd;
       let manualBlocks = [];
 
       const now = new Date();
-      const todayYMD = now.toISOString().split('T')[0];
+      const todayYMD = getLocalDateString(now);
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
       const currentTimeStr = `${currentHour < 10 ? '0' + currentHour : currentHour}:${currentMinute < 10 ? '0' + currentMinute : currentMinute}`;
@@ -686,16 +692,12 @@
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
           const sData = schedDoc.data();
-          workStart = sData.startTime || "10:00";
-          workEnd = sData.endTime || "20:00";
-          lStart = sData.lunchStart || "";
-          lEnd = sData.lunchEnd || "";
-        } else {
-          const defSched = getDefaultScheduleForDate(selectedDateValue);
-          workStart = defSched.startTime;
-          workEnd = defSched.endTime;
-          lStart = defSched.lunchStart;
-          lEnd = defSched.lunchEnd;
+          if (sData.startTime && sData.startTime !== "00:00") {
+            workStart = sData.startTime;
+            workEnd = sData.endTime;
+            lStart = sData.lunchStart || "";
+            lEnd = sData.lunchEnd || "";
+          }
         }
       } catch (e) {
         console.error("Error al obtener horario del día:", e);
@@ -875,7 +877,7 @@
     }
 
     function resetAdminFilterDate() {
-      const todayYMD = new Date().toISOString().split('T')[0];
+      const todayYMD = getLocalDateString();
       const filterInput = document.getElementById('adminFilterDate');
       if (filterInput) filterInput.value = todayYMD;
       loadAdminAppointments();
@@ -883,7 +885,7 @@
 
     function loadAdminAppointments() {
       const filterDateInput = document.getElementById('adminFilterDate');
-      let filterDate = filterDateInput && filterDateInput.value ? filterDateInput.value : new Date().toISOString().split('T')[0];
+      let filterDate = filterDateInput && filterDateInput.value ? filterDateInput.value : getLocalDateString();
 
       if (filterDateInput && !filterDateInput.value) {
         filterDateInput.value = filterDate;
