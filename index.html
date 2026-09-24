@@ -441,7 +441,8 @@
 
       // Inicializar el filtro de la fecha actual en Admin
       const todayYMD = new Date().toISOString().split('T')[0];
-      document.getElementById('adminFilterDate').value = todayYMD;
+      const filterInput = document.getElementById('adminFilterDate');
+      if (filterInput) filterInput.value = todayYMD;
 
       flatpickr("#inlineCalendar", {
         inline: true,
@@ -485,7 +486,6 @@
       if (user) {
         showAdminDashboard();
         closeLoginModal();
-        loadAdminAppointments();
         resetInactivityTimer();
       } else {
         showClientView();
@@ -866,17 +866,21 @@
 
     function resetAdminFilterDate() {
       const todayYMD = new Date().toISOString().split('T')[0];
-      document.getElementById('adminFilterDate').value = todayYMD;
+      const filterInput = document.getElementById('adminFilterDate');
+      if (filterInput) filterInput.value = todayYMD;
       loadAdminAppointments();
     }
 
     function loadAdminAppointments() {
       const filterDateInput = document.getElementById('adminFilterDate');
-      const filterDate = filterDateInput ? filterDateInput.value : new Date().toISOString().split('T')[0];
+      let filterDate = filterDateInput && filterDateInput.value ? filterDateInput.value : new Date().toISOString().split('T')[0];
+
+      if (filterDateInput && !filterDateInput.value) {
+        filterDateInput.value = filterDate;
+      }
 
       db.collection('citas')
         .where('date', '==', filterDate)
-        .orderBy('time', 'asc')
         .onSnapshot(snapshot => {
           const list = document.getElementById('appointmentsList');
           list.innerHTML = '';
@@ -886,11 +890,18 @@
             return;
           }
 
+          // Convertir a arreglo y ordenar por hora en JS sin requerir un índice compuesto en Firestore
+          const docsArray = [];
           snapshot.forEach(doc => {
-            const data = doc.data();
+            docsArray.push({ id: doc.id, ...doc.data() });
+          });
+
+          docsArray.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+          docsArray.forEach(data => {
             const item = document.createElement('div');
             
-            // Colores de borde y estilos según estado:
+            // Colores de borde y estilos según estado
             let borderClass = 'border-amber-500';
             let badgeClass = 'text-amber-400 border-amber-500/30';
             let textColor = 'text-amber-400';
@@ -916,24 +927,24 @@
             
             if (data.status === 'Pendiente') {
               buttonsHtml = `
-                <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Confirmar</button>
-                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
+                <button onclick="updateStatus('${data.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Confirmar</button>
+                <button onclick="updateStatus('${data.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
               `;
             } else if (data.status === 'Confirmada') {
               buttonsHtml = `
-                <button onclick="updateStatus('${doc.id}', 'Pagado')" class="bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded-lg font-bold text-white transition shadow-md flex items-center gap-1">
+                <button onclick="updateStatus('${data.id}', 'Pagado')" class="bg-blue-600 hover:bg-blue-500 px-2.5 py-1 rounded-lg font-bold text-white transition shadow-md flex items-center gap-1">
                   💳 Marcar Pagado
                 </button>
-                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
+                <button onclick="updateStatus('${data.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Cancelar</button>
               `;
             } else if (data.status === 'Pagado') {
               buttonsHtml = `
                 <span class="text-xs text-blue-400 font-bold flex items-center gap-1">✓ Pago Completado</span>
-                <button onclick="updateStatus('${doc.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition ml-2">Cancelar</button>
+                <button onclick="updateStatus('${data.id}', 'Cancelada')" class="bg-amber-600 hover:bg-amber-500 px-2.5 py-1 rounded-lg font-bold text-white transition ml-2">Cancelar</button>
               `;
             } else if (data.status === 'Cancelada') {
               buttonsHtml = `
-                <button onclick="updateStatus('${doc.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Reactivar</button>
+                <button onclick="updateStatus('${data.id}', 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-lg font-bold text-white transition">Reactivar</button>
               `;
             }
 
@@ -948,11 +959,15 @@
               </div>
               <div class="flex gap-2 text-xs pt-2 border-t border-gray-800 items-center">
                 ${buttonsHtml}
-                <button onclick="deleteAppointment('${doc.id}')" class="bg-red-600 hover:bg-red-500 px-2.5 py-1 rounded-lg font-bold text-white ml-auto transition">Eliminar</button>
+                <button onclick="deleteAppointment('${data.id}')" class="bg-red-600 hover:bg-red-500 px-2.5 py-1 rounded-lg font-bold text-white ml-auto transition">Eliminar</button>
               </div>
             `;
             list.appendChild(item);
           });
+        }, error => {
+          console.error("Error al cargar citas de Admin:", error);
+          const list = document.getElementById('appointmentsList');
+          if (list) list.innerHTML = `<p class="text-red-400 text-sm py-4 text-center">Error al cargar las citas: ${error.message}</p>`;
         });
     }
 
