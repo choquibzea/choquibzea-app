@@ -344,7 +344,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Función auxiliar de fecha local estricta (YYYY-MM-DD)
+    // Obtener fecha exacta local en formato YYYY-MM-DD
     function getLocalDateString(d = new Date()) {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -378,23 +378,26 @@
     function getDefaultScheduleForDate(dateString) {
       const parts = dateString.split('-');
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      const dayOfWeek = d.getDay(); // 0: Domingo, 1: Lunes, 2: Martes...
+      const dayOfWeek = d.getDay(); // 0: Domingo, 1: Lunes, 2: Martes, 3: Miércoles, 4: Jueves, 5: Viernes, 6: Sábado
 
       if (dayOfWeek === 1) {
         // Lunes: 4:00 PM a 8:00 PM
         return { startTime: "16:00", endTime: "20:00", lunchStart: "", lunchEnd: "" };
       } else if (dayOfWeek >= 2 && dayOfWeek <= 6) {
-        // Martes a Sábado: 10:00 AM a 1:30 PM y 4:00 PM a 8:00 PM
+        // Martes a Sábado (Incluye Jueves): 10:00 AM a 1:30 PM y 4:00 PM a 8:00 PM
         return { startTime: "10:00", endTime: "20:00", lunchStart: "13:30", lunchEnd: "16:00" };
       } else {
-        // Domingo: Cerrado por defecto
+        // Domingo: Cerrado
         return { startTime: "00:00", endTime: "00:00", lunchStart: "", lunchEnd: "" };
       }
     }
 
     function timeToMinutes(tStr) {
-      if (!tStr || tStr.trim() === "") return -1;
-      const [h, m] = tStr.split(':').map(Number);
+      if (!tStr || typeof tStr !== 'string' || tStr.trim() === "") return -1;
+      const parts = tStr.split(':');
+      if (parts.length < 2) return -1;
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
       if (isNaN(h) || isNaN(m)) return -1;
       return h * 60 + m;
     }
@@ -686,13 +689,13 @@
       const todayYMD = getLocalDateString(now);
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
-      const currentTimeStr = `${currentHour < 10 ? '0' + currentHour : currentHour}:${currentMinute < 10 ? '0' + currentMinute : currentMinute}`;
+      const currentMinNow = currentHour * 60 + currentMinute;
 
       try {
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
           const sData = schedDoc.data();
-          if (sData.startTime && sData.startTime !== "00:00") {
+          if (sData.startTime && sData.startTime !== "00:00" && sData.startTime.trim() !== "") {
             workStart = sData.startTime;
             workEnd = sData.endTime;
             lStart = sData.lunchStart || "";
@@ -731,7 +734,6 @@
       const endMin = timeToMinutes(workEnd);
       const lStartMin = timeToMinutes(lStart);
       const lEndMin = timeToMinutes(lEnd);
-      const currentMin = timeToMinutes(currentTimeStr);
 
       let availableSlotsCount = 0;
 
@@ -744,7 +746,9 @@
           const isLunch = (lStartMin !== -1 && lEndMin !== -1 && m >= lStartMin && m < lEndMin);
           const isBooked = bookedAppointments.some(app => app.time === timeString);
           const isManuallyBlocked = manualBlocks.includes(timeString);
-          const isPastTime = (selectedDateValue === todayYMD) && (m <= currentMin);
+          
+          // Bloquear estrictamente horas pasadas si la fecha seleccionada es HOY
+          const isPastTime = (selectedDateValue === todayYMD) && (m <= currentMinNow);
 
           if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime) {
             availableSlotsCount++;
