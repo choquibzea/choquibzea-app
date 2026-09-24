@@ -381,6 +381,12 @@
       }
     }
 
+    function timeToMinutes(tStr) {
+      if (!tStr) return -1;
+      const [h, m] = tStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
     function getWeekRange(dateString) {
       const parts = dateString.split('-');
       const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -439,7 +445,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       fetchAdminWhatsapp();
 
-      // Inicializar el filtro de la fecha actual en Admin
       const todayYMD = new Date().toISOString().split('T')[0];
       const filterInput = document.getElementById('adminFilterDate');
       if (filterInput) filterInput.value = todayYMD;
@@ -681,8 +686,8 @@
         const schedDoc = await db.collection('horarios').doc(selectedDateValue).get();
         if (schedDoc.exists) {
           const sData = schedDoc.data();
-          workStart = sData.startTime;
-          workEnd = sData.endTime;
+          workStart = sData.startTime || "10:00";
+          workEnd = sData.endTime || "20:00";
           lStart = sData.lunchStart || "";
           lEnd = sData.lunchEnd || "";
         } else {
@@ -720,21 +725,26 @@
 
       grid.innerHTML = '';
       
-      const [sH] = workStart.split(':').map(Number);
-      const [eH] = workEnd.split(':').map(Number);
+      const startMin = timeToMinutes(workStart);
+      const endMin = timeToMinutes(workEnd);
+      const lStartMin = timeToMinutes(lStart);
+      const lEndMin = timeToMinutes(lEnd);
+      const currentMin = timeToMinutes(currentTimeStr);
 
       let availableSlotsCount = 0;
 
-      for (let h = sH; h < eH; h++) {
-        ['00', '30'].forEach(m => {
-          const timeString = `${h < 10 ? '0' + h : h}:${m}`;
+      if (startMin !== -1 && endMin !== -1 && startMin < endMin) {
+        for (let m = startMin; m < endMin; m += 30) {
+          const h = Math.floor(m / 60);
+          const min = m % 60;
+          const timeString = `${h < 10 ? '0' + h : h}:${min === 0 ? '00' : min}`;
 
-          const isLunch = lStart && lEnd && (timeString >= lStart && timeString < lEnd);
+          const isLunch = (lStartMin !== -1 && lEndMin !== -1 && m >= lStartMin && m < lEndMin);
           const isBooked = bookedAppointments.some(app => app.time === timeString);
           const isManuallyBlocked = manualBlocks.includes(timeString);
-          const isPastTime = (selectedDateValue === todayYMD) && (timeString <= currentTimeStr);
+          const isPastTime = (selectedDateValue === todayYMD) && (m <= currentMin);
 
-          if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime && workStart !== "00:00") {
+          if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime) {
             availableSlotsCount++;
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -743,7 +753,7 @@
             btn.onclick = () => openBookingModal(timeString);
             grid.appendChild(btn);
           }
-        });
+        }
       }
 
       if (availableSlotsCount === 0) {
@@ -890,7 +900,6 @@
             return;
           }
 
-          // Convertir a arreglo y ordenar por hora en JS sin requerir un índice compuesto en Firestore
           const docsArray = [];
           snapshot.forEach(doc => {
             docsArray.push({ id: doc.id, ...doc.data() });
@@ -901,7 +910,6 @@
           docsArray.forEach(data => {
             const item = document.createElement('div');
             
-            // Colores de borde y estilos según estado
             let borderClass = 'border-amber-500';
             let badgeClass = 'text-amber-400 border-amber-500/30';
             let textColor = 'text-amber-400';
@@ -911,7 +919,7 @@
               badgeClass = 'text-emerald-400 border-emerald-500/30';
               textColor = 'text-emerald-400';
             } else if (data.status === 'Pagado') {
-              borderClass = 'border-blue-500 bg-blue-950/20'; // Cita azul al estar Pagado
+              borderClass = 'border-blue-500 bg-blue-950/20';
               badgeClass = 'text-blue-400 border-blue-500/30 bg-blue-950/60';
               textColor = 'text-blue-400';
             } else if (data.status === 'Cancelada') {
@@ -922,7 +930,6 @@
 
             item.className = `bg-gray-900 p-3.5 rounded-xl flex flex-col gap-2 border-l-4 shadow-md ${borderClass}`;
             
-            // Construir botones según el estado
             let buttonsHtml = '';
             
             if (data.status === 'Pendiente') {
