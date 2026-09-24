@@ -902,24 +902,24 @@
       e.preventDefault();
 
       const btn = document.getElementById('confirmBookingBtn');
+      const phoneInput = document.getElementById('clientPhone').value.trim();
+      const nameInput = document.getElementById('clientName').value.trim();
+
+      // Validación de teléfono previa
+      if (phoneInput.length !== 10 || isNaN(phoneInput)) {
+        alert('Por favor ingresa un número celular válido de 10 dígitos.');
+        return;
+      }
+
+      // Deshabilitación y actualización visual del botón
       if (btn) {
         btn.disabled = true;
         btn.innerText = 'Procesando...';
         btn.classList.add('opacity-50', 'cursor-not-allowed');
       }
 
-      const phoneInput = document.getElementById('clientPhone').value.trim();
-      const nameInput = document.getElementById('clientName').value.trim();
-
-      if (phoneInput.length !== 10 || isNaN(phoneInput)) {
-        alert('Por favor ingresa un número celular válido de 10 dígitos.');
-        if (btn) {
-          btn.disabled = false;
-          btn.innerText = 'Confirmar Cita';
-          btn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-        return;
-      }
+      // Pequeño retardo de frame para garantizar que el navegador actualice el botón
+      await new Promise(resolve => requestAnimationFrame(resolve));
 
       const serviceSelect = document.getElementById('serviceType');
       const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
