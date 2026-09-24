@@ -233,23 +233,7 @@
         </button>
       </div>
 
-      <!-- 3. Configuración Número WhatsApp Admin -->
-      <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl">
-        <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
-          <!-- SVG Phone / WhatsApp -->
-          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-          WhatsApp para Notificaciones
-        </h3>
-        <p class="text-xs text-gray-400">Número de WhatsApp al que los clientes enviarán la confirmación:</p>
-        <div class="flex gap-2">
-          <input type="tel" id="adminWhatsappInput" pattern="[0-9]{10}" maxlength="10" placeholder="3000000000" class="flex-1 bg-gray-900 border border-gray-700 rounded-xl p-2.5 text-white font-mono text-sm focus:outline-none focus:border-amber-500">
-          <button onclick="saveAdminWhatsapp()" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-xl text-sm transition">
-            Guardar
-          </button>
-        </div>
-      </div>
-
-      <!-- 4. Configuración de Horario General de Trabajo -->
+      <!-- 3. Configuración de Horario General de Trabajo -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
         <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
           <!-- SVG Calendar Config -->
@@ -420,6 +404,38 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // CREDENCIALES TELEGRAM CONFIGURADAS
+    const TELEGRAM_BOT_TOKEN = "8279919363:AAHthjbBTUCMDBYv8gzs8ea-Ad6XI5KGOpo";
+    const TELEGRAM_CHAT_ID = "5928664824";
+
+    // Función para enviar notificaciones automáticas por Telegram
+    async function sendAutomaticTelegramNotification(appointment, hadPreviousApp = false) {
+      let textMessage = `💈 *¡NUEVA CITA AGENDADA EN CHOQUIBZEA!*\n\n` +
+                          `👤 *Cliente:* ${appointment.clientName}\n` +
+                          `📱 *Teléfono:* ${appointment.clientPhone}\n` +
+                          `📅 *Fecha:* ${appointment.date}\n` +
+                          `⏰ *Hora:* ${appointment.time}\n` +
+                          `✂️ *Servicio:* ${appointment.service}`;
+
+      if (hadPreviousApp) {
+        textMessage += `\n\n⚠️ *(Nota: Se canceló automáticamente la cita anterior del cliente de esta misma semana)*`;
+      }
+
+      try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: textMessage,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (error) {
+        console.error("Error enviando notificación a Telegram:", error);
+      }
+    }
+
     // Obtener fecha exacta local en formato YYYY-MM-DD
     function getLocalDateString(d = new Date()) {
       const year = d.getFullYear();
@@ -436,7 +452,6 @@
     let bookedAppointments = [];
     let customBlockedSlots = [];
     let inactivityTimer = null;
-    let currentAdminPhone = "3000000000";
 
     function resetInactivityTimer() {
       if (inactivityTimer) clearTimeout(inactivityTimer);
@@ -496,40 +511,7 @@
       };
     }
 
-    async function fetchAdminWhatsapp() {
-      try {
-        const doc = await db.collection('configuracion').doc('general').get();
-        if (doc.exists && doc.data().whatsappPhone) {
-          currentAdminPhone = doc.data().whatsappPhone;
-        } else {
-          currentAdminPhone = "3000000000";
-        }
-        document.getElementById('adminWhatsappInput').value = currentAdminPhone;
-      } catch (e) {
-        console.error("Error al cargar configuración de WhatsApp:", e);
-      }
-    }
-
-    async function saveAdminWhatsapp() {
-      const inputVal = document.getElementById('adminWhatsappInput').value.trim();
-      if (inputVal.length !== 10 || isNaN(inputVal)) {
-        alert("Ingresa un número celular válido de 10 dígitos.");
-        return;
-      }
-      try {
-        await db.collection('configuracion').doc('general').set({
-          whatsappPhone: inputVal
-        }, { merge: true });
-        currentAdminPhone = inputVal;
-        alert("¡Número de WhatsApp para notificaciones guardado con éxito!");
-      } catch (e) {
-        alert("Error al guardar: " + e.message);
-      }
-    }
-
     document.addEventListener("DOMContentLoaded", () => {
-      fetchAdminWhatsapp();
-
       const todayYMD = getLocalDateString();
       const filterInput = document.getElementById('adminFilterDate');
       if (filterInput) filterInput.value = todayYMD;
@@ -651,7 +633,6 @@
       d.setDate(d.getDate() + offset);
       visualSelectedDateValue = getLocalDateString(d);
       
-      // Sincronizar el input date del admin
       const filterInput = document.getElementById('adminFilterDate');
       if (filterInput) filterInput.value = visualSelectedDateValue;
 
@@ -1172,21 +1153,14 @@
 
         await db.collection('citas').add(appointment);
 
+        // Envío automático de notificación por Telegram
+        await sendAutomaticTelegramNotification(appointment, hadPreviousApp);
+
         closeBookingModal();
         document.getElementById('clientDetailsForm').reset();
         renderSlots();
 
-        const cleanAdminPhone = "57" + currentAdminPhone;
-        let messageText = `Hola Yilmar, acabo de agendar una cita en ChoquibZea:\n\nNombre: ${appointment.clientName}\nTelefono: ${appointment.clientPhone}\nFecha: ${appointment.date}\nHora: ${appointment.time}\nServicio: ${appointment.service}`;
-        
-        if (hadPreviousApp) {
-          messageText += `\n\n(Nota: Se elimino automaticamente mi reserva anterior de esta misma semana.)`;
-        }
-
-        const encodedMessage = encodeURIComponent(messageText);
-
-        alert('¡Cita registrada con éxito! Serás redirigido a WhatsApp para enviar la confirmación.');
-        window.open(`https://wa.me/${cleanAdminPhone}?text=${encodedMessage}`, '_blank');
+        alert('¡Cita registrada con éxito! La barbería ha recibido tu solicitud.');
 
       } catch (err) {
         alert('Error al procesar la reserva: ' + err.message);
