@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="bg-black text-gray-100">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChoquibZea - Barbería Premium</title>
   
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS Compiled Fallback + Play CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" integrity="sha512-wnea99cKBU3eR3oyLZobUim6nC88y92xXJg6733ijX4L6Ekh3S76b050d2703816a1b2432832" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Flatpickr (Calendario Visual) -->
@@ -20,6 +21,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
+    /* Estilos de respaldo (Fallback CSS) garantizados ante cualquier bloqueo de red */
+    html, body {
+      background-color: #000000 !important;
+      color: #f3f4f6 !important;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    
+    /* Control estricto de tamaño para todos los SVGs */
+    svg {
+      max-width: 100%;
+      height: auto;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
     /* Estilos personalizados Barbería Premium */
     .gold-gradient {
       background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
@@ -53,10 +72,10 @@
   <header class="bg-gray-950/95 backdrop-blur border-b border-amber-500/30 p-4 sticky top-0 z-40 shadow-xl">
     <div class="max-w-xl mx-auto flex justify-between items-center">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-300 p-0.5 shadow-lg flex items-center justify-center">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-300 p-0.5 shadow-lg flex items-center justify-center shrink-0" style="width: 40px; height: 40px;">
           <div class="w-full h-full bg-gray-950 rounded-full flex items-center justify-center text-amber-400 font-black">
-            <!-- SVG Tijeras de Barbería -->
-            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0A3 3 0 104.879 4.879a3 3 0 004.242 4.242zm0 0L12 12m-7 7a3 3 0 104.242-4.242 3 3 0 00-4.242 4.242z"/></svg>
+            <!-- SVG Tijeras de Barbería con Dimensiones Fijas Failsafe -->
+            <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0A3 3 0 104.879 4.879a3 3 0 004.242 4.242zm0 0L12 12m-7 7a3 3 0 104.242-4.242 3 3 0 00-4.242 4.242z"/></svg>
           </div>
         </div>
         <div>
@@ -66,8 +85,8 @@
       </div>
 
       <button id="adminAuthBtn" onclick="toggleAdminModal()" class="text-xs bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-extrabold px-3.5 py-2 rounded-lg transition shadow-md flex items-center gap-1.5 active:scale-95">
-        <!-- SVG Shield / Admin -->
-        <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <!-- SVG Shield / Admin con Dimensiones Fijas -->
+        <svg width="16" height="16" style="width:16px; height:16px; min-width:16px; min-height:16px;" class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         <span>Panel Admin</span>
       </button>
     </div>
@@ -80,7 +99,7 @@
       <!-- Banner Pago Nequi Estilo Tarjeta VIP -->
       <div class="relative overflow-hidden bg-gradient-to-br from-purple-950 via-gray-900 to-black p-4 rounded-2xl border border-pink-500/40 shadow-2xl flex items-center justify-between gap-3 gold-glow">
         <div class="flex items-center gap-3 z-10">
-          <div class="w-12 h-12 bg-pink-600 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg ring-2 ring-pink-400/30">
+          <div class="w-12 h-12 bg-pink-600 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg ring-2 ring-pink-400/30" style="width: 48px; height: 48px;">
             N
           </div>
           <div>
@@ -97,7 +116,7 @@
       <!-- SECCIÓN: BUSCADOR / CANCELADOR DE CITA PARA CLIENTES -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
         <div class="flex items-center gap-2 text-amber-400">
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <h2 class="text-lg font-bold text-amber-400">¿Ya tienes una Cita Agendada?</h2>
         </div>
         <p class="text-xs text-gray-400">Ingresa tu número de WhatsApp para consultar o cancelar tu reserva:</p>
@@ -117,7 +136,7 @@
       <!-- Paso 1: Servicio -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
         <div class="flex items-center gap-2 text-amber-400">
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
           <h2 class="text-lg font-bold text-amber-400">1. Selecciona el Servicio</h2>
         </div>
         
@@ -130,8 +149,7 @@
       <!-- Paso 2: Calendario Visual Integrado -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
         <div class="flex items-center gap-2 text-amber-400">
-          <!-- SVG Calendario -->
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           <h2 class="text-lg font-bold text-amber-400">2. Selecciona el Día en el Calendario</h2>
         </div>
         <div id="inlineCalendar" class="flex justify-center bg-gray-900 p-2 rounded-xl border border-gray-800"></div>
@@ -141,13 +159,11 @@
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-3 shadow-xl gold-glow">
         <div class="flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-2">
-            <!-- SVG Reloj -->
-            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <h2 class="text-lg font-bold text-amber-400">3. Horarios Disponibles</h2>
             
             <button onclick="renderSlots()" class="text-xs bg-gray-900 hover:bg-gray-800 text-amber-400 border border-amber-500/40 px-2.5 py-1 rounded-lg transition flex items-center gap-1 font-bold active:scale-95" title="Actualizar disponibilidad">
-              <!-- SVG Sync -->
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <svg width="14" height="14" style="width:14px; height:14px; min-width:14px; min-height:14px;" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               <span>Actualizar</span>
             </button>
           </div>
@@ -165,8 +181,7 @@
     <section id="adminDashboard" class="hidden space-y-6">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <div class="flex items-center gap-2">
-          <!-- SVG Admin Crown/User -->
-          <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg width="24" height="24" style="width:24px; height:24px; min-width:24px; min-height:24px;" class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <h2 class="text-xl font-black text-amber-400">Panel Admin (Yilmar)</h2>
         </div>
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-white shadow transition">Cerrar Sesión</button>
@@ -176,17 +191,14 @@
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
         <div class="flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-2">
-            <!-- SVG Clipboard -->
-            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             <h3 class="font-bold text-lg text-amber-400">Citas Agendadas</h3>
             
-            <!-- Botón para ver la agenda visual completa del día -->
             <button onclick="openDayVisualGUI()" class="text-xs bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-extrabold px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1 active:scale-95" title="Ver Agenda Visual del Día">
               <span>👁️ Vista Visual del Día</span>
             </button>
           </div>
 
-          <!-- Filtros de Fecha + Navegación + Filtro de Estado -->
           <div class="flex items-center gap-1.5 flex-wrap bg-gray-900 p-1.5 rounded-xl border border-gray-800 text-xs">
             <div class="flex items-center gap-1">
               <button onclick="navigateAdminDate(-1)" class="bg-gray-800 hover:bg-amber-500 hover:text-black text-amber-400 px-2 py-1 rounded-lg font-black transition active:scale-95" title="Día Anterior">
@@ -198,7 +210,6 @@
               </button>
             </div>
 
-            <!-- Filtro de Estado de Citas (Por defecto Pendiente) -->
             <select id="adminFilterStatus" onchange="loadAdminAppointments()" class="bg-gray-800 text-amber-400 font-bold p-1 rounded-lg border border-amber-500/30 focus:outline-none">
               <option value="Pendiente" selected>⏳ Pendientes</option>
               <option value="Confirmada">✅ Confirmadas</option>
@@ -222,8 +233,7 @@
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border shadow-xl flex justify-between items-center gap-3">
         <div>
           <h3 class="font-bold text-amber-400 flex items-center gap-1.5">
-            <!-- SVG Ban Lock -->
-            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             Bloqueo Personalizado de Horarios
           </h3>
           <p class="text-xs text-gray-400 mt-1">Bloquea horas sueltas a tu antojo para diligencias personales.</p>
@@ -236,8 +246,7 @@
       <!-- 3. Configuración de Horario General de Trabajo -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
         <h3 class="font-bold text-lg text-amber-400 flex items-center gap-2">
-          <!-- SVG Calendar Config -->
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
           Configurar Horario Laboral General
         </h3>
         <p class="text-xs text-gray-400">Selecciona el día en el calendario y modifica tu horario de atención y descanso:</p>
@@ -289,7 +298,6 @@
       </div>
 
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
-        <!-- Navegación de Fecha para el Timeline -->
         <div class="flex justify-between items-center bg-gray-900 p-2.5 rounded-xl border border-gray-800">
           <div class="flex items-center gap-1.5">
             <button onclick="navigateDayVisualDate(-1)" class="bg-gray-800 hover:bg-amber-500 hover:text-black text-amber-400 px-2.5 py-1 rounded-lg font-black transition">◄</button>
@@ -299,7 +307,6 @@
           <button onclick="resetDayVisualDate()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 px-3 py-1 rounded-lg font-bold border border-amber-500/30">Hoy</button>
         </div>
 
-        <!-- Leyenda de Colores -->
         <div class="flex flex-wrap gap-2 text-[10px] text-gray-300 font-semibold bg-gray-900/50 p-2 rounded-lg border border-gray-800">
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Pendiente</span>
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Confirmada</span>
@@ -308,9 +315,8 @@
           <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-900 border border-amber-500/40"></span> Libre</span>
         </div>
 
-        <!-- Timeline Grid -->
         <div id="dayVisualTimeline" class="space-y-2 pt-2">
-          <!-- Se genera dinámicamente sin horas de almuerzo -->
+          <!-- Se genera dinámicamente -->
         </div>
       </div>
     </section>
@@ -345,7 +351,7 @@
   <div id="bookingModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
     <div class="bg-gray-950 p-6 rounded-2xl border gold-border max-w-sm w-full space-y-4 shadow-2xl gold-glow">
       <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
         Confirmar Reserva
       </h3>
       
@@ -366,7 +372,6 @@
         </div>
 
         <div class="flex gap-2 pt-2">
-          <!-- Botón de Confirmación con Deshabilitación Antiduplicados -->
           <button type="submit" id="confirmBookingBtn" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-extrabold py-3 rounded-xl transition shadow-lg text-sm">Confirmar Cita</button>
           <button type="button" onclick="closeBookingModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl transition text-sm font-bold">Cancelar</button>
         </div>
@@ -424,7 +429,7 @@
       return `${hStr}:${m} ${ampm}`;
     }
 
-    // Convertir string de hora (sea 24h o AM/PM) a minutos totales para ordenamiento cronológico
+    // Convertir string de hora a minutos totales para ordenamiento cronológico
     function timeToMinutes(tStr) {
       if (!tStr || typeof tStr !== 'string' || tStr.trim() === "") return -1;
       let str = tStr.trim().toUpperCase();
@@ -441,7 +446,7 @@
       return h * 60 + m;
     }
 
-    // Función para enviar notificaciones automáticas por Telegram (Formato Ultra Rápido con AM/PM)
+    // Notificaciones automáticas por Telegram
     async function sendAutomaticTelegramNotification(appointment, hadPreviousApp = false) {
       const formattedTime = formatAMPM(appointment.time);
       let textMessage = `⏰ *${formattedTime}* - *${appointment.clientName}*\n` +
@@ -503,16 +508,13 @@
     function getDefaultScheduleForDate(dateString) {
       const parts = dateString.split('-');
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      const dayOfWeek = d.getDay(); // 0: Domingo, 1: Lunes, 2: Martes, 3: Miércoles, 4: Jueves, 5: Viernes, 6: Sábado
+      const dayOfWeek = d.getDay();
 
       if (dayOfWeek === 1) {
-        // Lunes: 4:00 PM a 8:00 PM
         return { startTime: "16:00", endTime: "20:00", lunchStart: "", lunchEnd: "" };
       } else if (dayOfWeek >= 2 && dayOfWeek <= 6) {
-        // Martes a Sábado (Incluye Jueves): 10:00 AM a 1:30 PM y 4:00 PM a 8:00 PM
         return { startTime: "10:00", endTime: "20:00", lunchStart: "13:30", lunchEnd: "16:00" };
       } else {
-        // Domingo: Cerrado
         return { startTime: "00:00", endTime: "00:00", lunchStart: "", lunchEnd: "" };
       }
     }
@@ -634,7 +636,7 @@
       renderSlots();
     }
 
-    /* VISTA VISUAL DEL DÍA (AGENDA COMPLETA SIN ESPACIOS DE ALMUERZO) */
+    /* VISTA VISUAL DEL DÍA COMPLETO (SIN ESPACIOS DE ALMUERZO) */
     function openDayVisualGUI() {
       const filterInput = document.getElementById('adminFilterDate');
       visualSelectedDateValue = filterInput && filterInput.value ? filterInput.value : getLocalDateString();
@@ -733,7 +735,7 @@
       for (let m = startMin; m < endMin; m += 30) {
         const isLunch = (lStartMin !== -1 && lEndMin !== -1 && m >= lStartMin && m < lEndMin);
         
-        // REQUISITO 1: Ocultar los espacios de almuerzo en la vista visual
+        // Ocultar franja de almuerzo
         if (isLunch) {
           continue;
         }
@@ -1077,7 +1079,6 @@
           const isBooked = bookedAppointments.some(app => app.time === timeString || formatAMPM(app.time) === timeAMPM);
           const isManuallyBlocked = manualBlocks.includes(timeString) || manualBlocks.includes(timeAMPM);
           
-          // Bloquear horas pasadas si la fecha seleccionada es HOY
           const isPastTime = (selectedDateValue === todayYMD) && (m <= currentMinNow);
 
           if (!isLunch && !isBooked && !isManuallyBlocked && !isPastTime) {
@@ -1106,7 +1107,6 @@
       document.getElementById('modalSummaryTime').innerText = selectedSlot;
       document.getElementById('modalSummaryService').innerText = serviceText;
 
-      // Restablecer estado activo del botón de confirmación
       const btn = document.getElementById('confirmBookingBtn');
       if (btn) {
         btn.disabled = false;
@@ -1128,20 +1128,17 @@
       const phoneInput = document.getElementById('clientPhone').value.trim();
       const nameInput = document.getElementById('clientName').value.trim();
 
-      // Validación de teléfono previa
       if (phoneInput.length !== 10 || isNaN(phoneInput)) {
         alert('Por favor ingresa un número celular válido de 10 dígitos.');
         return;
       }
 
-      // Deshabilitación y actualización visual del botón
       if (btn) {
         btn.disabled = true;
         btn.innerText = 'Procesando...';
         btn.classList.add('opacity-50', 'cursor-not-allowed');
       }
 
-      // Pequeño retardo de frame para garantizar que el navegador actualice el botón
       await new Promise(resolve => requestAnimationFrame(resolve));
 
       const serviceSelect = document.getElementById('serviceType');
@@ -1182,7 +1179,6 @@
 
         await db.collection('citas').add(appointment);
 
-        // Envío automático de notificación por Telegram
         await sendAutomaticTelegramNotification(appointment, hadPreviousApp);
 
         closeBookingModal();
@@ -1263,7 +1259,6 @@
             docsArray.push({ id: doc.id, ...doc.data() });
           });
 
-          // Filtrar por Estado si no está en "Todas"
           if (filterStatus !== 'Todas') {
             docsArray = docsArray.filter(item => item.status === filterStatus);
           }
@@ -1273,7 +1268,6 @@
             return;
           }
 
-          // Ordenamiento cronológico inteligente independientemente de cómo fue guardado el texto
           docsArray.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
 
           docsArray.forEach(data => {
