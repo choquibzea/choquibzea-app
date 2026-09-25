@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChoquibZea - Barbería Premium</title>
   
-  <!-- Tailwind CSS Compiled Fallback + Play CDN -->
+  <!-- Tailwind CSS CDN Fallbacks -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" integrity="sha512-wnea99cKBU3eR3oyLZobUim6nC88y92xXJg6733ijX4L6Ekh3S76b050d2703816a1b2432832" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -21,7 +21,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
-    /* Estilos de respaldo (Fallback CSS) garantizados ante cualquier bloqueo de red */
+    /* REGLA CRÍTICA DE SEGURIDAD: Garantiza la ocultación nativa sin depender de Tailwind */
+    .hidden, [hidden] {
+      display: none !important;
+    }
+
+    /* ESTILOS DE RESPALDO (NATIVOS) ANTE BLOQUEO DE RED/CDN */
     html, body {
       background-color: #000000 !important;
       color: #f3f4f6 !important;
@@ -39,12 +44,25 @@
       vertical-align: middle;
     }
 
+    /* Respaldo de botones e insumos de formulario */
+    button, input, select {
+      font-family: inherit;
+    }
+
+    input, select {
+      background-color: #111827 !important;
+      color: #ffffff !important;
+      border: 1px solid #374151 !important;
+      border-radius: 0.75rem !important;
+      padding: 0.625rem 0.875rem !important;
+    }
+
     /* Estilos personalizados Barbería Premium */
     .gold-gradient {
       background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
     }
     .gold-border {
-      border-color: rgba(245, 158, 11, 0.4);
+      border-color: rgba(245, 158, 11, 0.4) !important;
     }
     .gold-glow {
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
@@ -63,6 +81,17 @@
     }
     .flatpickr-day:hover {
       background: rgba(245, 158, 11, 0.2) !important;
+    }
+
+    /* Respaldo para modales emergentes */
+    #bookingModal, #loginModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
     }
   </style>
 </head>
@@ -177,8 +206,8 @@
       </div>
     </section>
 
-    <!-- VISTA ADMIN PRINCIPAL -->
-    <section id="adminDashboard" class="hidden space-y-6">
+    <!-- VISTA ADMIN PRINCIPAL (Oculta por defecto con regla inline style) -->
+    <section id="adminDashboard" class="hidden space-y-6" style="display: none !important;">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <div class="flex items-center gap-2">
           <svg width="24" height="24" style="width:24px; height:24px; min-width:24px; min-height:24px;" class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -187,7 +216,7 @@
         <button onclick="logoutAdmin()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg font-bold text-white shadow transition">Cerrar Sesión</button>
       </div>
 
-      <!-- 1. Citas Agendadas con Filtro por Fecha, Estado y Botón de Vista Visual -->
+      <!-- 1. Citas Agendadas -->
       <div class="bg-gray-950 p-5 rounded-2xl border gold-border space-y-4 shadow-xl">
         <div class="flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-2">
@@ -289,7 +318,7 @@
     </section>
 
     <!-- GUI ADMIN DEDICADA: VISTA VISUAL DEL DÍA COMPLETO (CRONOGRAMA) -->
-    <section id="adminDayVisualGUI" class="hidden space-y-6">
+    <section id="adminDayVisualGUI" class="hidden space-y-6" style="display: none !important;">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2">
           <span>👁️ Agenda Visual del Día</span>
@@ -322,7 +351,7 @@
     </section>
 
     <!-- GUI ADMIN DEDICADA: BLOQUEO PERSONALIZADO DE HORARIOS -->
-    <section id="adminCustomBlockGUI" class="hidden space-y-6">
+    <section id="adminCustomBlockGUI" class="hidden space-y-6" style="display: none !important;">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <h2 class="text-xl font-bold text-amber-400">Gestor de Bloqueo Manual</h2>
         <button onclick="closeCustomBlockGUI()" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg font-bold text-white border border-gray-700">Volver al Panel</button>
@@ -348,7 +377,7 @@
   </main>
 
   <!-- MODAL DE CONFIRMACIÓN DE RESERVA -->
-  <div id="bookingModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+  <div id="bookingModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50" style="display: none !important;">
     <div class="bg-gray-950 p-6 rounded-2xl border gold-border max-w-sm w-full space-y-4 shadow-2xl gold-glow">
       <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
         <svg width="20" height="20" style="width:20px; height:20px; min-width:20px; min-height:20px;" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -380,7 +409,7 @@
   </div>
 
   <!-- MODAL LOGIN ADMIN -->
-  <div id="loginModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+  <div id="loginModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50" style="display: none !important;">
     <div class="bg-gray-950 p-6 rounded-2xl border gold-border max-w-sm w-full space-y-4 shadow-2xl gold-glow">
       <h3 class="text-lg font-bold text-center text-amber-400">Acceso Admin ChoquibZea</h3>
       <input type="email" id="adminEmail" placeholder="Correo de Yilmar" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
@@ -412,6 +441,23 @@
     const TELEGRAM_BOT_TOKEN = "8279919363:AAHthjbBTUCMDBYv8gzs8ea-Ad6XI5KGOpo";
     const TELEGRAM_CHAT_ID = "5928664824";
 
+    // FUNCIONES AUXILIARES ROBUSTAS PARA OCULTAR/MOSTRAR ELEMENTOS
+    function showElement(id, displayStyle = 'block') {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        el.style.setProperty('display', displayStyle, 'important');
+      }
+    }
+
+    function hideElement(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        el.style.setProperty('display', 'none', 'important');
+      }
+    }
+
     // Formateador de Horas a Formato AM/PM de 12 horas
     function formatAMPM(tStr) {
       if (!tStr || typeof tStr !== 'string' || tStr.trim() === "") return '';
@@ -440,7 +486,7 @@
       if (parts.length < 2) return -1;
       let h = parseInt(parts[0], 10);
       let m = parseInt(parts[1], 10);
-      if (isNaN(h) || isNaN(m)) return -1;
+      if (isNaN(h)) return -1;
       if (isPM && h < 12) h += 12;
       if (isAM && h === 12) h = 0;
       return h * 60 + m;
@@ -474,7 +520,6 @@
       }
     }
 
-    // Obtener fecha exacta local en formato YYYY-MM-DD
     function getLocalDateString(d = new Date()) {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -590,19 +635,19 @@
     });
 
     function showAdminDashboard() {
-      document.getElementById('adminDashboard').classList.remove('hidden');
-      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
-      document.getElementById('adminDayVisualGUI').classList.add('hidden');
-      document.getElementById('clientView').classList.add('hidden');
+      showElement('adminDashboard');
+      hideElement('adminCustomBlockGUI');
+      hideElement('adminDayVisualGUI');
+      hideElement('clientView');
       document.getElementById('adminAuthBtn').innerText = 'Ver Como Cliente';
       loadAdminAppointments();
     }
 
     function showClientView() {
-      document.getElementById('adminDashboard').classList.add('hidden');
-      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
-      document.getElementById('adminDayVisualGUI').classList.add('hidden');
-      document.getElementById('clientView').classList.remove('hidden');
+      hideElement('adminDashboard');
+      hideElement('adminCustomBlockGUI');
+      hideElement('adminDayVisualGUI');
+      showElement('clientView');
       if (auth.currentUser) {
         document.getElementById('adminAuthBtn').innerText = 'Ir a Panel Admin';
       } else {
@@ -613,42 +658,41 @@
 
     function toggleAdminModal() {
       if (auth.currentUser) {
-        const isAdminVisible = !document.getElementById('adminDashboard').classList.contains('hidden') || !document.getElementById('adminCustomBlockGUI').classList.contains('hidden') || !document.getElementById('adminDayVisualGUI').classList.contains('hidden');
+        const isAdminVisible = document.getElementById('adminDashboard').style.display !== 'none' || document.getElementById('adminCustomBlockGUI').style.display !== 'none' || document.getElementById('adminDayVisualGUI').style.display !== 'none';
         if (isAdminVisible) {
           showClientView();
         } else {
           showAdminDashboard();
         }
       } else {
-        document.getElementById('loginModal').classList.remove('hidden');
+        showElement('loginModal', 'flex');
       }
     }
 
     function openCustomBlockGUI() {
-      document.getElementById('adminDashboard').classList.add('hidden');
-      document.getElementById('adminCustomBlockGUI').classList.remove('hidden');
+      hideElement('adminDashboard');
+      showElement('adminCustomBlockGUI');
       renderCustomBlockSlots();
     }
 
     function closeCustomBlockGUI() {
-      document.getElementById('adminCustomBlockGUI').classList.add('hidden');
-      document.getElementById('adminDashboard').classList.remove('hidden');
+      hideElement('adminCustomBlockGUI');
+      showElement('adminDashboard');
       renderSlots();
     }
 
-    /* VISTA VISUAL DEL DÍA COMPLETO (SIN ESPACIOS DE ALMUERZO) */
     function openDayVisualGUI() {
       const filterInput = document.getElementById('adminFilterDate');
       visualSelectedDateValue = filterInput && filterInput.value ? filterInput.value : getLocalDateString();
       
-      document.getElementById('adminDashboard').classList.add('hidden');
-      document.getElementById('adminDayVisualGUI').classList.remove('hidden');
+      hideElement('adminDashboard');
+      showElement('adminDayVisualGUI');
       renderDayVisualTimeline();
     }
 
     function closeDayVisualGUI() {
-      document.getElementById('adminDayVisualGUI').classList.add('hidden');
-      document.getElementById('adminDashboard').classList.remove('hidden');
+      hideElement('adminDayVisualGUI');
+      showElement('adminDashboard');
       loadAdminAppointments();
     }
 
@@ -735,7 +779,6 @@
       for (let m = startMin; m < endMin; m += 30) {
         const isLunch = (lStartMin !== -1 && lEndMin !== -1 && m >= lStartMin && m < lEndMin);
         
-        // Ocultar franja de almuerzo
         if (isLunch) {
           continue;
         }
@@ -794,7 +837,6 @@
       }
     }
 
-    /* BUSCADOR DE CITAS DE CLIENTE POR TELÉFONO */
     async function searchClientAppointment() {
       const phone = document.getElementById('searchClientPhone').value.trim();
       const resContainer = document.getElementById('searchAppointmentResult');
@@ -804,7 +846,7 @@
         return;
       }
 
-      resContainer.classList.remove('hidden');
+      showElement('searchAppointmentResult');
       resContainer.innerHTML = '<p class="text-xs text-gray-400 font-mono">Buscando citas...</p>';
 
       try {
@@ -862,7 +904,6 @@
       }
     }
 
-    /* NAVEGACIÓN DÍA A DÍA EN EL PANEL ADMIN */
     function navigateAdminDate(daysOffset) {
       const filterInput = document.getElementById('adminFilterDate');
       let currentDateStr = filterInput.value || getLocalDateString();
@@ -1114,11 +1155,11 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
       }
 
-      document.getElementById('bookingModal').classList.remove('hidden');
+      showElement('bookingModal', 'flex');
     }
 
     function closeBookingModal() {
-      document.getElementById('bookingModal').classList.add('hidden');
+      hideElement('bookingModal');
     }
 
     async function confirmBooking(e) {
@@ -1198,7 +1239,7 @@
     }
 
     function closeLoginModal() {
-      document.getElementById('loginModal').classList.add('hidden');
+      hideElement('loginModal');
     }
 
     async function loginAdmin() {
